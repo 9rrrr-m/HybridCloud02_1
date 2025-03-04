@@ -1,0 +1,9 @@
+---
+# vars file for roles/waf
+pkg:
+  - firewalld
+svc:
+  - firewalld
+fw_rule:
+  - http
+  - https

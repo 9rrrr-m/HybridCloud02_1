@@ -1,0 +1,21 @@
+---
+# tasks file for roles/waf
+- name: Install packages
+  ansible.builtin.dnf:
+    name: "{{ pkg }}"
+    state: present
+
+- name: Start and enable service
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    state: started
+    enabled: true
+  loop: "{{ svc }}"
+
+- name: Firewall port open
+  ansible.posix.firewalld:
+    service: "{{ item }}"
+    permanent: true
+    immediate: true
+    state: enabled
+  loop: "{{ fw_rule }}"

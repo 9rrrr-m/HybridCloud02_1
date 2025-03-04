@@ -1,0 +1,19 @@
+---
+# tasks file for roles/apache
+- name: Install packages
+  ansible.builtin.dnf:
+    name: "{{ pkg }}"
+    state: present
+
+- name: Start and enable service
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    state: started
+    enabled: true
+  loop: "{{ svc }}"
+
+- name: Deploy index.html.j2 template
+  ansible.builtin.template:
+    src: templates/index.html.j2
+    dest: /var/www/html/index.html
+    mode: '0644'

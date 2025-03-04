@@ -1,0 +1,9 @@
+[waf]
+waf.example.com
+
+[lb]
+lb.example.com
+
+[web]
+web1.example.com
+web2.example.com

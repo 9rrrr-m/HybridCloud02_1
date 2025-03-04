@@ -1,0 +1,23 @@
+---
+- name: ansible-navigator env setting
+  hosts: all
+  vars:
+    pw: ansible
+  tasks:
+    - name: useradd ansible
+      ansible.builtin.user:
+        name: ansible
+        password: "{{ pw | password_hash('sha512') }}"
+        groups: wheel
+        
+    - name: Deploy /etc/sudoers.d/ansible
+      ansible.builtin.copy:
+        content: "ansible  ALL=(ALL)  NOPASSWD: ALL\n"
+        dest: /etc/sudoers.d/ansible
+        mode: '0644'
+    
+    - name: Deploy ssh public key
+      ansible.builtin.authorized_key:
+        user: ansible
+        state: present
+        key: "{{ lookup('file', '~/.ssh/id_rsa.pub') }}"

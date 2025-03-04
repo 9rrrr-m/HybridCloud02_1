@@ -1,0 +1,10 @@
+---
+- name: Use waf role
+  hosts: waf
+  roles:
+    - waf
+
+- name: Use apache role
+  hosts: web
+  roles:
+    - apache
