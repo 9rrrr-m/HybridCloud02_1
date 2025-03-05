@@ -9,13 +9,13 @@
         name: ansible
         password: "{{ pw | password_hash('sha512') }}"
         groups: wheel
-        
+
     - name: Deploy /etc/sudoers.d/ansible
       ansible.builtin.copy:
         content: "ansible  ALL=(ALL)  NOPASSWD: ALL\n"
         dest: /etc/sudoers.d/ansible
         mode: '0644'
-    
+
     - name: Deploy ssh public key
       ansible.builtin.authorized_key:
         user: ansible

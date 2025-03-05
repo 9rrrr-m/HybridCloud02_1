@@ -1,9 +1,9 @@
 [waf]
-waf.example.com
+waf.example.com ansible_ssh_host=192.168.1.110
 
 [lb]
-lb.example.com
+lb.example.com ansible_ssh_host=192.168.1.200
 
 [web]
-web1.example.com
-web2.example.com
+web1.example.com ansible_ssh_host=192.168.1.104
+web2.example.com ansible_ssh_host=192.168.1.105
