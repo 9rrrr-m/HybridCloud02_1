@@ -1,0 +1,61 @@
+---
+- name: Hardware report
+  hosts: all
+  tasks:
+    - name: Deploy hwreport.txt
+      ansible.builtin.template:
+        src: templates/hwreport.empty
+        dest: /root/hwreport.txt
+        mode: '0644'
+
+    - name: Edit file - Host
+      ansible.builtin.lineinfile:
+        path: /root/hwreport.txt
+        regexp: '^HOST='
+        line: "HOST={{ ansible_hostname }}"
+
+    - name: Edit file - BIOS
+      ansible.builtin.lineinfile:
+        path: /root/hwreport.txt
+        regexp: '^BIOS='
+        line: "BIOS={{ ansible_bios_version }}"
+
+    - name: Edit file - MEMORY
+      ansible.builtin.lineinfile:
+        path: /root/hwreport.txt
+        regexp: '^MEMORY='
+        line: "MEMORY={{ ansible_memtotal_mb }}"
+
+    - name: Edit file - SDA_DISK_SIZE
+      ansible.builtin.lineinfile:
+        path: /root/hwreport.txt
+        regexp: '^SDA_DISK_SIZE='
+        line: |
+          {% if ansible_devices['sda'] is defined %}
+          SDA_DISK_SIZE={{ ansible_devices['sda']['size'] }}
+          {% else %}
+          SDA_DISK_SIZE=NONE
+          {% endif %}
+
+    - name: Edit file - SDB_DISK_SIZE
+      ansible.builtin.lineinfile:
+        path: /root/hwreport.txt
+        regexp: '^SDB_DISK_SIZE='
+        line: |
+          {% if ansible_devices['sdb'] is defined %}
+          SDB_DISK_SIZE={{ ansible_devices['sdb']['size'] }}
+          {% else %}
+          SDB_DISK_SIZE=NONE
+          {% endif %}
+
+    - name: Edit file - SDC_DISK_SIZE
+      ansible.builtin.lineinfile:
+        path: /root/hwreport.txt
+        regexp: '^SDC_DISK_SIZE='
+        line: SDC_DISK_SIZE={{ ansible_devices.sdc.size | default('NONE') }}
+
+    - name: Fetch hwreport.txt
+      ansible.builtin.fetch:
+        src: /root/hwreport.txt
+        dest: "results/hwreport-{{ ansible_hostname }}.txt"
+        flat: true

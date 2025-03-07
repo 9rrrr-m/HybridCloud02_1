@@ -2,18 +2,19 @@
 - name: Create test user
   hosts: all
   vars_files:
+    - locker.yml
     - userlist.yml
   tasks:
-    - name: Create developer user
+    - name: Create user
       ansible.builtin.user:
         name: "{{ users[0].username }}"
-        password: "{{ users[0].pw | password_hash('sha512') }}"
+        password: "{{ pw | password_hash('sha512') }}"
         password_expire_max: "{{ users[0].password_expire_max }}"
         groups: "{{ users[0].groups }}"
         state: present
 
-    - name: Deploy /etc/sudoers.d/test
+    - name: Deploy /etc/sudoers.d/username
       ansible.builtin.copy:
         content: "test  ALL=(ALL)  NOPASSWD: ALL\n"
-        dest: /etc/sudoers.d/test
+        dest: /etc/sudoers.d/{{ users[0].username }}
         mode: '0644'

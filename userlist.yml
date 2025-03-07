@@ -3,4 +3,3 @@ users:
   - username: test
     groups: wheel
     password_expire_max: 9999
-    pw: test

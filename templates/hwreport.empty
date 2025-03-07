@@ -1,0 +1,6 @@
+HOST=inventory hostname
+BIOS=bios version
+MEMORY=total memory in mb
+SDA_DISK_SIZE=disk size
+SDB_DISK_SIZE=disk size
+SDC_DISK_SIZE=disk size
