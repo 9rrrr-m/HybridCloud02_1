@@ -1,0 +1,15 @@
+---
+- name: Backup host node
+  hosts: all
+  tasks:
+    - name: Create tar file
+      community.general.archive:
+        path: /var/www/html/
+        dest: /root/backup.tar.gz
+        format: gz
+
+    - name: Fetch the backup file to control node
+      ansible.builtin.fetch:
+        src: "/root/backup.tar.gz"
+        dest: "results/backup-{{ ansible_fqdn }}.tar.gz"
+        flat: true

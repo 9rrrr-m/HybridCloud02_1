@@ -1,0 +1,11 @@
+---
+- name: Change issue content
+  hosts: all
+  tasks:
+    - name: Using copy module
+      ansible.builtin.copy:
+        content: "{{ issue_content }}\n"
+        dest: /etc/issue
+        owner: root
+        group: root
+        mode: '0644'

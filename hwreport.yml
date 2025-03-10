@@ -57,5 +57,5 @@
     - name: Fetch hwreport.txt
       ansible.builtin.fetch:
         src: /root/hwreport.txt
-        dest: "results/hwreport-{{ ansible_hostname }}.txt"
+        dest: "report/hwreport-{{ ansible_hostname }}.txt"
         flat: true
