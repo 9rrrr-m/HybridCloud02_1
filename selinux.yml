@@ -1,0 +1,13 @@
+---
+- name: Set SELinux enforcing
+  hosts: all
+  tasks:
+    - name: Config /etc/selinux/config
+      ansible.builtin.lineinfile:
+        path: /etc/selinux/config
+        regexp: '^SELINUX='
+        line: 'SELINUX=enforcing'
+        state: present
+
+    - name: Reboot
+      ansible.builtin.reboot:

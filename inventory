@@ -7,12 +7,3 @@ lb.example.com ansible_ssh_host=192.168.1.200
 [web]
 web1.example.com ansible_ssh_host=192.168.1.104
 web2.example.com ansible_ssh_host=192.168.1.105
-
-[waf:vars]
-issue_content=WAF
-
-[lb:vars]
-issue_content=LB
-
-[web:vars]
-issue_content="WEB server"
