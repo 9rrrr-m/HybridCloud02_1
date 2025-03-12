@@ -1,0 +1,10 @@
+---
+- name: Set SELinux enforcing
+  hosts: all
+  tasks:
+    - name: Config SELinux
+      ansible.builtin.include_role:
+        name: fedora.linux-system-roles.selinux
+      vars:
+        selinux_policy: targeted
+        selinux_state: enforcing

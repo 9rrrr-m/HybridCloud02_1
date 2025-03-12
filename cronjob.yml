@@ -1,0 +1,12 @@
+---
+- name: Create cronjob
+  hosts: web
+  tasks:
+    - name: Configure datejob
+      ansible.builtin.cron:
+        name: datejob
+        cron_file: datejob
+        user: ansible
+        minute: '0,30'
+        weekday: '1-5'
+        job: "date >> /home/ansible/datefile"
