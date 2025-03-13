@@ -1,0 +1,10 @@
+---
+- name: Delete cronjob
+  hosts: web
+  tasks:
+    - name: Remove loggerjob
+      ansible.builtin.cron:
+        name: loggerjob
+        cron_file: loggerjob
+        user: ansible
+        state: absent

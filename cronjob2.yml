@@ -1,0 +1,11 @@
+---
+- name: Create cronjob2
+  hosts: web
+  tasks:
+    - name: Configure loggerjob
+      ansible.builtin.cron:
+        name: loggerjob
+        cron_file: loggerjob
+        user: ansible
+        minute: '*/2'
+        job: 'logger "Ansible logger in progress"'
