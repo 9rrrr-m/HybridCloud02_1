@@ -1,0 +1,8 @@
+---
+- name: Set default target
+  hosts: all
+  tasks:
+    - name: Configure graphical.target
+      ansible.builtin.shell:
+        cmd: "systemctl set-default graphical.target"
+      changed_when: false

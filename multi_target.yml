@@ -1,0 +1,8 @@
+---
+- name: Set default target
+  hosts: web
+  tasks:
+    - name: Configure multi-user.target
+      ansible.builtin.shell:
+        cmd: "systemctl set-default multi-user.target"
+      changed_when: false
