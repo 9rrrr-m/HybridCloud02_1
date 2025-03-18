@@ -470,7 +470,7 @@
     (작업2) 다음 요구 사항을 갖는 /home/ansible/project/loadbalancer.yml 이름의 playbook을 생성한다.
     
     - lb 호스트 그룹에서 실행되며 balancer role을 사용하는 play가 포함되어야 한다. 이 role은 web 호스트 그룹 내의 호스트 사이에서 웹 서버 요청을 로드 밸런싱하는 서비스를 구성한다.
-        - 예) http://lb.example.com/을 브라우징하면 다음 출력이 생성
+        - 예) http://lb.example.com/ 을 브라우징하면 다음 출력이 생성
         **Welcome to web1.example.com on 192.168.1.104**
             
             브라우저를 다시 로드하면 대체 웹 서버에서 출력을 생성
@@ -479,9 +479,9 @@
     - web 호스트 그룹에서 실행되며 phpinfo role을 사용하는 play가 포함되어야 한다. web 호스트 그룹 내의 호스트에서 /hello.php URL로 브라우징하면 다음 출력이 생성된다.
     **Hello PHP World from FQDN**
         - 여기서 FQDN은 호스트의 완전한 도메인 이름
-        - 예1) http://web1.example.com/hello.php을 브라우징하면 다음 출력이 생성
+        - 예1) http://web1.example.com/hello.php 을 브라우징하면 다음 출력이 생성
         **Hello PHP World from web1.example.com**
-        - 예2) http://web2.example.com/hello.php를 브라우징하면, PHP 구성의 여러 세부 정보와 함께 다음과 같은 출력 생성
+        - 예2) http://web2.example.com/hello.php 를 브라우징하면, PHP 구성의 여러 세부 정보와 함께 다음과 같은 출력 생성
         **Hello PHP World from web2.example.com**
             - PHP 구성의 다양한 세부 정보와 설치된 PHP 버전을 포함하여 출력
     
@@ -652,35 +652,24 @@
     - hwreport.empty 파일을 사용하여 각 관리 대상 호스트에 /root/hwreport.txt 파일 이름으로 저장
     - 올바른 값으로 /root/hwreport.txt를 수정
     - 디스크 하드웨어 항목이 없는 경우 연결된 값이 NONE으로 설정됨
-        
-        
-        | 수정전 - hwreport.txt | 수정후 - hwreport.txt |
-        | --- | --- |
-        | HOST=inventory hostname 
-        BIOS=bios version
-        MEMORY=total memory in mb
-        SD**A**_DISK_SIZE=disk size
-        SD**B**_DISK_SIZE=disk size
-        SD**C**_DISK_SIZE=disk size | HOST=ansible3
-        BIOS=6.00
-        MEMORY=777
-        SD**A**_DISK_SIZE=40.00 GB
-        SD**B**_DISK_SIZE=1.00 GB
-        SD**C**_DISK_SIZE=NONE |
+
+| 수정전 - hwreport.txt | 수정후 - hwreport.txt |
+| --- | --- |
+| HOST=inventory hostname | HOST=ansible3 |
+| BIOS=bios version | BIOS=6.00 |
+| MEMORY=total memory in mb | MEMORY=777 |
+| SD**A**_DISK_SIZE=disk size | SD**A**_DISK_SIZE=40.00 GB |
+| SD**B**_DISK_SIZE=disk size | SD**B**_DISK_SIZE=1.00 GB | 
+| SD**C**_DISK_SIZE=disk size | SD**C**_DISK_SIZE=NONE |
+
     - 각 관리 대상 호스트에 수정된 /root/hwreport.txt 파일을 제어노드의 ~/project/report 디렉토리에 다음과 같은 이름으로 결과 파일을 수집한다.
         
         ~/project
-        
-        +-- report
-        
-        +-- hwreport-waf.txt
-        
-        +-- hwreport-lb.txt
-        
-        +-- hwreport-web1.txt
-        
-        +-- hwreport-web2.txt
-        
+          +-- report
+            +-- hwreport-waf.txt
+            +-- hwreport-lb.txt
+            +-- hwreport-web1.txt
+            +-- hwreport-web2.txt
     
     (사전 준비) templates/hwreport.empty 템플릿 파일 작성
     
