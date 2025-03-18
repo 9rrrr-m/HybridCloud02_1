@@ -653,24 +653,26 @@
     - 올바른 값으로 /root/hwreport.txt를 수정
     - 디스크 하드웨어 항목이 없는 경우 연결된 값이 NONE으로 설정됨
 
-| 수정전 - hwreport.txt | 수정후 - hwreport.txt |
-| --- | --- |
-| HOST=inventory hostname | HOST=ansible3 |
-| BIOS=bios version | BIOS=6.00 |
-| MEMORY=total memory in mb | MEMORY=777 |
-| SD**A**_DISK_SIZE=disk size | SD**A**_DISK_SIZE=40.00 GB |
-| SD**B**_DISK_SIZE=disk size | SD**B**_DISK_SIZE=1.00 GB | 
-| SD**C**_DISK_SIZE=disk size | SD**C**_DISK_SIZE=NONE |
+      | 수정전 - hwreport.txt | 수정후 - hwreport.txt |
+      | --- | --- |
+      | HOST=inventory hostname | HOST=ansible3 |
+      | BIOS=bios version | BIOS=6.00 |
+      | MEMORY=total memory in mb | MEMORY=777 |
+      | SD**A**_DISK_SIZE=disk size | SD**A**_DISK_SIZE=40.00 GB |
+      | SD**B**_DISK_SIZE=disk size | SD**B**_DISK_SIZE=1.00 GB | 
+      | SD**C**_DISK_SIZE=disk size | SD**C**_DISK_SIZE=NONE |
 
     - 각 관리 대상 호스트에 수정된 /root/hwreport.txt 파일을 제어노드의 ~/project/report 디렉토리에 다음과 같은 이름으로 결과 파일을 수집한다.
         
-        ~/project
-          +-- report
+      ```
+      ~/project
+        +-- report
             +-- hwreport-waf.txt
             +-- hwreport-lb.txt
             +-- hwreport-web1.txt
             +-- hwreport-web2.txt
-    
+      ```
+
     (사전 준비) templates/hwreport.empty 템플릿 파일 작성
     
     - vi templates/hwreport.empty
