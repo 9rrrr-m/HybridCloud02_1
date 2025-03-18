@@ -130,8 +130,8 @@
         vi ~/.ansible-navigator.yml
         ---------------------------
         ansible-navigator:
-        	playbook-artifact:
-        		enable: false
+          playbook-artifact:
+            enable: false
         ---------------------------
         
         # /etc/hosts 설정
@@ -198,27 +198,27 @@
         ```yaml
         ---
         - name: ansible-navigator env setting
-        	hosts: all
-        	vars:
-        		pw: ansible
-        	tasks:
-        		- name: useradd ansible
-        			ansible.builtin.user:
-        				name: ansible
-        				password: "{{ pw | password_hash('sha512') }}"
-        				groups: wheel
-        				
-        		- name: Deploy /etc/sudoers.d/ansible
-        			ansible.builtin.copy:
-        				content: "ansible  ALL=(ALL)  NOPASSWD: ALL\n"
-        				dest: /etc/sudoers.d/ansible
-        				mode: '0644'
-        		
-        		- name: Deploy ssh public key
-        			ansible.builtin.authorized_key:
-        				user: ansible
-        				state: present
-        				key: "{{ lookup('file', '~/.ssh/id_rsa.pub') }}"
+          hosts: all
+          vars:
+            pw: ansible
+          tasks:
+            - name: useradd ansible
+              ansible.builtin.user:
+                name: ansible
+                password: "{{ pw | password_hash('sha512') }}"
+                groups: wheel
+                
+            - name: Deploy /etc/sudoers.d/ansible
+              ansible.builtin.copy:
+                content: "ansible  ALL=(ALL)  NOPASSWD: ALL\n"
+                dest: /etc/sudoers.d/ansible
+                mode: '0644'
+            
+            - name: Deploy ssh public key
+              ansible.builtin.authorized_key:
+                user: ansible
+                state: present
+                key: "{{ lookup('file', '~/.ssh/id_rsa.pub') }}"
         ```
         
     - (실행) `ann ansible-ENV-setting.yml`
@@ -246,7 +246,7 @@
         ----------------------------------------------------------------------------------
         ---
         collections:
-        	- name: http://192.168.1.102/collections/fedora-linux_system_roles-1.95.6.tar.gz
+          - name: http://192.168.1.102/collections/fedora-linux_system_roles-1.95.6.tar.gz
         ----------------------------------------------------------------------------------
         anx collection install -r collections/requirements.yml -p collections
         ```
@@ -261,19 +261,19 @@
         ```yaml
         ---
         - name: Time synchronization
-        	hosts: all
-        	tasks:
-        		- name: Set timezone
-        			community.general.timezone:
-        				name: Asia/Seoul  # tzselect
-        		
-        		- name: Timesync
-        			ansible.builtin.include_role:
-        				name: fedora.linux_system_roles.timesync
-        			vars:
-        				timesync_ntp_servers:
-        					- hostname: kr.pool.ntp.org
-        						iburst: true
+          hosts: all
+          tasks:
+            - name: Set timezone
+              community.general.timezone:
+                name: Asia/Seoul  # tzselect
+            
+            - name: Timesync
+              ansible.builtin.include_role:
+                name: fedora.linux_system_roles.timesync
+              vars:
+                timesync_ntp_servers:
+                  - hostname: kr.pool.ntp.org
+                    iburst: true
         ```
         
         - (참고 문서 경로) collections/ansible_collections/fedora/linux_system_roles/roles/timesync/README.md
@@ -302,24 +302,24 @@
             ---
             # tasks file for roles/waf
             - name: Install packages
-            	ansible.builtin.dnf:
-            		name: "{{ pkg }}"
-            		state: present
-            		
+              ansible.builtin.dnf:
+                name: "{{ pkg }}"
+                state: present
+                
             - name: Start and enable service
-            	ansible.builtin.systemd:
-            		name: "{{ item }}"
-            		state: started
-            		enabled: true
-            	loop: "{{ svc }}"
-            	
+              ansible.builtin.systemd:
+                name: "{{ item }}"
+                state: started
+                enabled: true
+              loop: "{{ svc }}"
+              
             - name: Firewall port open
-            	ansible.posix.firewalld:
-            		service: "{{ item }}"
-            		permanent: true
-            		immediate: true
-            		state: enabled
-            	loop: "{{ fw_rule }}"
+              ansible.posix.firewalld:
+                service: "{{ item }}"
+                permanent: true
+                immediate: true
+                state: enabled
+              loop: "{{ fw_rule }}"
             ```
             
         - vi roles/waf/vars/main.yml
@@ -328,12 +328,12 @@
             ---
             # vars file for roles/waf
             pkg:
-            	- firewalld
+              - firewalld
             svc:
-            	- firewalld
+              - firewalld
             fw_rule:
-            	- http
-            	- https
+              - http
+              - https
             ```
             
     - apache role
@@ -344,22 +344,22 @@
             ---
             # tasks file for roles/apache
             - name: Install packages
-            	ansible.builtin.dnf:
-            		name: "{{ pkg }}"
-            		state: present
-            		
+              ansible.builtin.dnf:
+                name: "{{ pkg }}"
+                state: present
+                
             - name: Start and enable service
-            	ansible.builtin.systemd:
-            		name: "{{ item }}"
-            		state: started
-            		enabled: true
-            	loop: "{{ svc }}"
-            	
+              ansible.builtin.systemd:
+                name: "{{ item }}"
+                state: started
+                enabled: true
+              loop: "{{ svc }}"
+              
             - name: Deploy index.html.j2 template
-            	ansible.builtin.template:
-            		src: templates/index.html.j2
-            		dest: /var/www/html/index.html
-            		mode: '0644'
+              ansible.builtin.template:
+                src: templates/index.html.j2
+                dest: /var/www/html/index.html
+                mode: '0644'
             ```
             
         - vi roles/apache/vars/main.yml
@@ -368,10 +368,10 @@
             ---
             # vars file for roles/apache
             pkg:
-            	- httpd
-            	- mod_ssl
+              - httpd
+              - mod_ssl
             svc:
-            	- httpd
+              - httpd
             ```
             
         - vi roles/apache/templates/index.html.j2
@@ -386,14 +386,14 @@
             ```yaml
             ---
             - name: Use waf role
-            	hosts: waf
-            	roles:
-            		- waf
+              hosts: waf
+              roles:
+                - waf
             
             - name: Use apache role
-            	hosts: web
-            	roles:
-            		- apache
+              hosts: web
+              roles:
+                - apache
             ```
             
         - (test)
@@ -445,15 +445,15 @@
         ```yaml
         ---
         - name: Deploy hosts.j2
-        	hosts: all
-        	tasks:
-        		- name: Using template module
-        			ansible.builtin.template:
-        			  src: templates/hosts.j2
-        			  dest: /etc/hosts
-        			  owner: root
-        			  group: root
-        			  mode: '0644'
+          hosts: all
+          tasks:
+            - name: Using template module
+              ansible.builtin.template:
+                src: templates/hosts.j2
+                dest: /etc/hosts
+                owner: root
+                group: root
+                mode: '0644'
         ```
         
     - (확인) `ans waf -m shell -a "cat /etc/hosts"`
@@ -492,10 +492,10 @@
         ```yaml
         ---
         - name: balancer
-        	src: https://github.com/geerlingguy/ansible-role-haproxy/archive/1.3.1.tar.gz
-        	
+          src: https://github.com/geerlingguy/ansible-role-haproxy/archive/1.3.1.tar.gz
+          
         - name: phpinfo
-        	src: https://github.com/buluma/ansible-role-php.git
+          src: https://github.com/buluma/ansible-role-php.git
         ```
         
     - `anx install -r roles/requirements.yml -p roles/`
@@ -504,10 +504,10 @@
         ```bash
         # List of backend servers.
         haproxy_backend_servers:
-        	- name: web1
-        	  address: 192.168.1.104:80
-        	- name: web2
-        	  address: 192.168.1.105:80
+          - name: web1
+            address: 192.168.1.104:80
+          - name: web2
+            address: 192.168.1.105:80
         ```
         
     - (추가) vi roles/phpinfo/tasks/main.yml
@@ -524,14 +524,14 @@
         ```yaml
         ---
         - name: Include role phpinfo
-        	hosts: web
+          hosts: web
           roles:
-        	  - phpinfo
+            - phpinfo
           
         - name: Include role balancer
-        	hosts: lb
+          hosts: lb
           roles:
-        	  - balancer
+            - balancer
         ```
         
     - (확인) `curl http://lb.example.com/`
@@ -842,15 +842,15 @@
         ```yaml
         ---
         - name: Change issue content
-        	hosts: all
-        	tasks:
-        		- name: Using copy module
-        			ansible.builtin.copy:
-        			  content: "{{ issue_content }}\n"
-        			  dest: /etc/issue
-        			  owner: root
-        			  group: root
-        			  mode: '0644'
+          hosts: all
+          tasks:
+            - name: Using copy module
+              ansible.builtin.copy:
+                content: "{{ issue_content }}\n"
+                dest: /etc/issue
+                owner: root
+                group: root
+                mode: '0644'
         ```
         
     - (다른 방법) `mkdir group_vars`  - 그룹 변수 사용
@@ -883,17 +883,17 @@
         ```yaml
         ---
         - name: Set SELinux enforcing
-        	hosts: all
-        	tasks:
-        		- name: Config /etc/selinux/config
-        			ansible.builtin.lineinfile:
-        				path: /etc/selinux/config
-        				regexp: '^SELINUX='
-        				line: 'SELINUX=enforcing'
-        				state: present
+          hosts: all
+          tasks:
+            - name: Config /etc/selinux/config
+              ansible.builtin.lineinfile:
+                path: /etc/selinux/config
+                regexp: '^SELINUX='
+                line: 'SELINUX=enforcing'
+                state: present
         
-        		- name: Reboot
-        			ansible.builtin.reboot:
+            - name: Reboot
+              ansible.builtin.reboot:
         ```
         
     - (다른 방법) vi selinux2.yml  - collection 사용
@@ -901,14 +901,14 @@
         ```yaml
         ---
         - name: Set SELinux enforcing
-        	hosts: all
-        	tasks:
-        		- name: Config SELinux
-        			ansible.builtin.include_role:
-        				name: fedora.linux-system-roles.selinux
-        			vars:
-        				selinux_policy: targeted
-        				selinux_state: enforcing
+          hosts: all
+          tasks:
+            - name: Config SELinux
+              ansible.builtin.include_role:
+                name: fedora.linux-system-roles.selinux
+              vars:
+                selinux_policy: targeted
+                selinux_state: enforcing
         ```
         
     - (Ad-hoc 이용한 방법) `ans all -m selinux -a 'policy=targeted state=enforcing'`
@@ -928,16 +928,16 @@
         ```yaml
         ---
         - name: Create cronjob
-        	hosts: web
-        	tasks:
-        		- name: Configure datejob
-        			ansible.builtin.cron:
-        				name: datejob
-        				cron_file: datejob
-        				user: ansible
-        				minute: '0,30'
-        				weekday: '1-5'
-        				job: "date >> /home/ansible/datefile"
+          hosts: web
+          tasks:
+            - name: Configure datejob
+              ansible.builtin.cron:
+                name: datejob
+                cron_file: datejob
+                user: ansible
+                minute: '0,30'
+                weekday: '1-5'
+                job: "date >> /home/ansible/datefile"
         ```
         
     
@@ -953,15 +953,15 @@
         ```yaml
         ---
         - name: Create cronjob2
-        	hosts: web
-        	tasks:
-        		- name: Configure loggerjob
-        			ansible.builtin.cron:
-        				name: loggerjob
-        				cron_file: loggerjob
-        				user: ansible
-        				minute: '*/2'
-        				job: 'logger "Ansible logger in progress"'
+          hosts: web
+          tasks:
+            - name: Configure loggerjob
+              ansible.builtin.cron:
+                name: loggerjob
+                cron_file: loggerjob
+                user: ansible
+                minute: '*/2'
+                job: 'logger "Ansible logger in progress"'
         ```
         
         - (확인) `ans web -m shell -a 'cat /var/log/messages | grep Ansible'`
@@ -1009,12 +1009,12 @@
         ```yaml
         ---
         - name: Set default target
-        	hosts: all
-        	tasks:
-        		- name: Configure multi-user.target
-        			ansible.builtin.shell:
-        				cmd: "systemctl set-default multi-user.target"
-        			changed_when: false
+          hosts: all
+          tasks:
+            - name: Configure multi-user.target
+              ansible.builtin.shell:
+                cmd: "systemctl set-default multi-user.target"
+              changed_when: false
         ```
         
     
