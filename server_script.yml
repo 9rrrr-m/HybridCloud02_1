@@ -1,0 +1,16 @@
+---
+- name: Server script
+  become: true
+  become_user: root
+  hosts: all
+  tasks:
+    - name: Run script 2022_ICTIS_Unix_v1.0.sh
+      ansible.builtin.script: 2022_ICTIS_Unix_v1.0.sh
+      args:
+        creates: 2022_ICTIS_Unix_v1.0.sh
+
+    - name: Fetch the report file to control node
+      ansible.builtin.fetch:
+        src: "/root/Linux_server_script_result.txt"
+        dest: "results2/{{ ansible_fqdn }}.txt"
+        flat: true

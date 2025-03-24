@@ -1,0 +1,4425 @@
+
+==========================
+UNIX/Linux Security Check
+==========================
+ 
+------------------------------------------   Start Time   ------------------------------------------
+ 
+Mon Mar 24 14:42:43 KST 2025
+ 
+----------------------------------------------------------------------------------------------------
+ 
+====================
+Security Check START
+====================
+
+
+[U-01] root 계정 원격 접속 제한
+ 
+[START]
+ 
+TELNET 판단기준 : TELNET을 사용하지 않거나 Root 직접 접속 차단 설정
+판단기준 참고 : auth required pam_securetty.so (pam_faillock.so) 설정 및 pts/x 미설정시 양호
+ 
+1. pam_securetty.so 설정 및 pts/x 설정 확인
+1-1. grep -E pam_securetty /etc/pam.d/login
+ 
+1-2. grep -E pts /etc/securetty
+ 
+2. 현황 : /etc/pam.d/login 상세 내용
+auth       substack     system-auth
+auth       include      postlogin
+account    required     pam_nologin.so
+account    include      system-auth
+password   include      system-auth
+session    required     pam_selinux.so close
+session    required     pam_loginuid.so
+session    required     pam_selinux.so open
+session    required     pam_namespace.so
+session    optional     pam_keyinit.so force revoke
+session    include      system-auth
+session    include      postlogin
+-session   optional     pam_ck_connector.so
+ 
+3. 현황 : /etc/securetty 상세 내용
+ 
+판단기준 : SSH를 사용하지 않거나, SSH의 설정 파일 중 PermitRootLogin값을 no로 설정시 양호
+ 
+1. 서비스 현황
+root         983       1  0 14:25 ?        00:00:00 sshd: /usr/sbin/sshd -D [listener] 0 of 10-100 startups
+root        9140     983  0 14:42 ?        00:00:00 sshd: root [priv]
+root        9158    9140  1 14:42 ?        00:00:00 sshd: root@pts/0
+ 
+2. 현황 : /etc/sshd_config 설정 파일 (결과 없을시 PermitRootLogin 미설정)
+ 
+2. 현황 : /etc/ssh/sshd_config 설정 파일 (결과 없을시 PermitRootLogin 미설정)
+ 
+2. 현황 : /usr/local/etc/sshd_config 설정 파일 (결과 없을시 PermitRootLogin 미설정)
+ 
+2. 현황 : /usr/local/sshd/etc/sshd_config 설정 파일 (결과 없을시 PermitRootLogin 미설정)
+ 
+2. 현황 : /usr/local/ssh/etc/sshd_config 설정 파일 (결과 없을시 PermitRootLogin 미설정)
+ 
+[END]
+[U-02] 패스워드 복잡성 설정
+ 
+[START]
+ 
+판단기준 : 영문,숫자,특수문자 조합하여 2종류 조합시 10자리 이상, 3종류 조합시 8자리 이상 설정 (공공기관 9자리 이상)
+******************************************************
+1. Minlen(패스워드 최소길이) 8자리 이상 설정
+2. Ucredit(숫자 입력 겂증값) -1이하 설정
+3. Dcredit(대문자 입력 겂증값) -1이하 설정
+4. Ocredit(소문자 입력 검증값) -1이하 설정
+5. Lcredit(특수문자 입력 검증값) -1이하 설정
+******************************************************
+ 
+1. 현황 : /etc/pam.d/system-auth 상세 내용
+
+auth        required                                     pam_env.so
+auth        required                                     pam_faildelay.so delay=2000000
+auth        sufficient                                   pam_fprintd.so
+auth        [default=1 ignore=ignore success=ok]         pam_usertype.so isregular
+auth        [default=1 ignore=ignore success=ok]         pam_localuser.so
+auth        sufficient                                   pam_unix.so nullok
+auth        [default=1 ignore=ignore success=ok]         pam_usertype.so isregular
+auth        sufficient                                   pam_sss.so forward_pass
+auth        required                                     pam_deny.so
+
+account     required                                     pam_unix.so
+account     sufficient                                   pam_localuser.so
+account     sufficient                                   pam_usertype.so issystem
+account     [default=bad success=ok user_unknown=ignore] pam_sss.so
+account     required                                     pam_permit.so
+
+password    requisite                                    pam_pwquality.so local_users_only
+password    sufficient                                   pam_unix.so sha512 shadow nullok use_authtok
+password    [success=1 default=ignore]                   pam_localuser.so
+password    sufficient                                   pam_sss.so use_authtok
+password    required                                     pam_deny.so
+
+session     optional                                     pam_keyinit.so revoke
+session     required                                     pam_limits.so
+-session    optional                                     pam_systemd.so
+session     [success=1 default=ignore]                   pam_succeed_if.so service in crond quiet use_uid
+session     required                                     pam_unix.so
+session     optional                                     pam_sss.so
+ 
+2. 현황 : /etc/pam.d/common-password 상세 내용
+ 
+3. 현황 : /etc/security/pwquality.conf 상세 내용
+ 
+4. 현황 : /etc/login.defs 상세 내용
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+MAIL_DIR	/var/spool/mail
+
+
+
+
+
+
+
+UMASK		022
+
+HOME_MODE	0700
+
+PASS_MAX_DAYS	99999
+PASS_MIN_DAYS	0
+PASS_WARN_AGE	7
+
+
+
+
+UID_MIN                  1000
+UID_MAX                 60000
+SYS_UID_MIN               201
+SYS_UID_MAX               999
+SUB_UID_MIN		   100000
+SUB_UID_MAX		600100000
+SUB_UID_COUNT		    65536
+
+GID_MIN                  1000
+GID_MAX                 60000
+SYS_GID_MIN               201
+SYS_GID_MAX               999
+SUB_GID_MIN		   100000
+SUB_GID_MAX		600100000
+SUB_GID_COUNT		    65536
+
+
+
+
+
+
+
+
+
+
+ENCRYPT_METHOD SHA512
+
+SHA_CRYPT_MAX_ROUNDS 100000
+
+
+
+
+
+
+
+USERGROUPS_ENAB yes
+
+
+CREATE_HOME	yes
+
+
+HMAC_CRYPTO_ALGO SHA512
+ 
+ 
+[END]
+[U-03] 계정 잠금 임계값 설정
+ 
+[START]
+ 
+판단기준 : 계정 임계값이 5이하의 값으로 설정
+ 
+****************************************************************************************************************
+1. auth required /lib/security/pam_tally.so deny=5 unlock_time=120 no_magic_root 확인
+2. account required /lib/security/pam_tally.so no_magic_root reset 확인
+3. (CentOs 8 이상) account required pam_faillock.so preauth silent audit deny=5 unlock_time=120 확인
+****************************************************************************************************************
+ 
+1. 현황 : /etc/pam.d/system-auth 상세 내용
+
+auth        required                                     pam_env.so
+auth        required                                     pam_faildelay.so delay=2000000
+auth        sufficient                                   pam_fprintd.so
+auth        [default=1 ignore=ignore success=ok]         pam_usertype.so isregular
+auth        [default=1 ignore=ignore success=ok]         pam_localuser.so
+auth        sufficient                                   pam_unix.so nullok
+auth        [default=1 ignore=ignore success=ok]         pam_usertype.so isregular
+auth        sufficient                                   pam_sss.so forward_pass
+auth        required                                     pam_deny.so
+
+account     required                                     pam_unix.so
+account     sufficient                                   pam_localuser.so
+account     sufficient                                   pam_usertype.so issystem
+account     [default=bad success=ok user_unknown=ignore] pam_sss.so
+account     required                                     pam_permit.so
+
+password    requisite                                    pam_pwquality.so local_users_only
+password    sufficient                                   pam_unix.so sha512 shadow nullok use_authtok
+password    [success=1 default=ignore]                   pam_localuser.so
+password    sufficient                                   pam_sss.so use_authtok
+password    required                                     pam_deny.so
+
+session     optional                                     pam_keyinit.so revoke
+session     required                                     pam_limits.so
+-session    optional                                     pam_systemd.so
+session     [success=1 default=ignore]                   pam_succeed_if.so service in crond quiet use_uid
+session     required                                     pam_unix.so
+session     optional                                     pam_sss.so
+ 
+2. 현황 : /etc/pam.d/common-auth 상세 내용
+ 
+ 
+[END]
+[U-04] 패스워드 파일 보호
+ 
+[START]
+ 
+판단기준 : shadow 파일을 사용하거나, 패스워드를 암호화하여 저장하는 경우
+판단기준 참고 : shadow 파일에서 두번째 필드의 x 표기 여부 확인
+ 
+1. 현황 : ls -al /etc/passwd /etc/shadow
+-rw-r--r-- 1 root root 2062 Mar 13 14:39 /etc/passwd
+---------- 1 root root 1258 Mar 13 14:39 /etc/shadow
+ 
+2. 현황 : /etc/passwd 상세 내용
+root:x:0:0:root:/root:/bin/bash
+bin:x:1:1:bin:/bin:/sbin/nologin
+daemon:x:2:2:daemon:/sbin:/sbin/nologin
+adm:x:3:4:adm:/var/adm:/sbin/nologin
+lp:x:4:7:lp:/var/spool/lpd:/sbin/nologin
+sync:x:5:0:sync:/sbin:/bin/sync
+shutdown:x:6:0:shutdown:/sbin:/sbin/shutdown
+halt:x:7:0:halt:/sbin:/sbin/halt
+mail:x:8:12:mail:/var/spool/mail:/sbin/nologin
+operator:x:11:0:operator:/root:/sbin/nologin
+games:x:12:100:games:/usr/games:/sbin/nologin
+ftp:x:14:50:FTP User:/var/ftp:/sbin/nologin
+nobody:x:65534:65534:Kernel Overflow User:/:/sbin/nologin
+tss:x:59:59:Account used for TPM access:/:/usr/sbin/nologin
+systemd-coredump:x:999:997:systemd Core Dumper:/:/sbin/nologin
+dbus:x:81:81:System message bus:/:/sbin/nologin
+polkitd:x:998:996:User for polkitd:/:/sbin/nologin
+avahi:x:70:70:Avahi mDNS/DNS-SD Stack:/var/run/avahi-daemon:/sbin/nologin
+geoclue:x:997:995:User for geoclue:/var/lib/geoclue:/sbin/nologin
+cockpit-wsinstance:x:996:993:User for cockpit-ws instances:/nonexisting:/sbin/nologin
+rtkit:x:172:172:RealtimeKit:/proc:/sbin/nologin
+libstoragemgmt:x:991:991:daemon account for libstoragemgmt:/:/usr/sbin/nologin
+colord:x:990:990:User for colord:/var/lib/colord:/sbin/nologin
+sssd:x:989:989:User for sssd:/:/sbin/nologin
+clevis:x:988:988:Clevis Decryption Framework unprivileged user:/var/cache/clevis:/usr/sbin/nologin
+setroubleshoot:x:987:987:SELinux troubleshoot server:/var/lib/setroubleshoot:/usr/sbin/nologin
+pipewire:x:986:986:PipeWire System Daemon:/run/pipewire:/usr/sbin/nologin
+flatpak:x:985:985:User for flatpak system helper:/:/sbin/nologin
+gdm:x:42:42::/var/lib/gdm:/sbin/nologin
+gnome-initial-setup:x:984:983::/run/gnome-initial-setup/:/sbin/nologin
+chrony:x:983:982:chrony system user:/var/lib/chrony:/sbin/nologin
+sshd:x:74:74:Privilege-separated SSH:/usr/share/empty.sshd:/usr/sbin/nologin
+dnsmasq:x:982:981:Dnsmasq DHCP and DNS server:/var/lib/dnsmasq:/usr/sbin/nologin
+tcpdump:x:72:72::/:/sbin/nologin
+ansible:x:1000:1000::/home/ansible:/bin/bash
+haproxy:x:981:980:haproxy:/var/lib/haproxy:/usr/sbin/nologin
+test:x:1001:1001::/home/test:/bin/bash
+ 
+3. 현황 : /etc/shadow 상세 내용
+root:$6$rounds=100000$mXhkRy4rHxWjiPm7$WyavIcv0WBaoyybqOaVRhQ8fa1UpCvy0BycOTeRo//dj8Tr/Ps8PgUTOzZDe5ElAxjfJZLMQ424RYF8Q3T94W1:19941:0:99999:7:::
+bin:*:19760:0:99999:7:::
+daemon:*:19760:0:99999:7:::
+adm:*:19760:0:99999:7:::
+lp:*:19760:0:99999:7:::
+sync:*:19760:0:99999:7:::
+shutdown:*:19760:0:99999:7:::
+halt:*:19760:0:99999:7:::
+mail:*:19760:0:99999:7:::
+operator:*:19760:0:99999:7:::
+games:*:19760:0:99999:7:::
+ftp:*:19760:0:99999:7:::
+nobody:*:19760:0:99999:7:::
+tss:!!:19941::::::
+systemd-coredump:!!:19941::::::
+dbus:!!:19941::::::
+polkitd:!!:19941::::::
+avahi:!!:19941::::::
+geoclue:!!:19941::::::
+cockpit-wsinstance:!!:19941::::::
+rtkit:!!:19941::::::
+libstoragemgmt:!*:19941::::::
+colord:!!:19941::::::
+sssd:!!:19941::::::
+clevis:!!:19941::::::
+setroubleshoot:!!:19941::::::
+pipewire:!!:19941::::::
+flatpak:!!:19941::::::
+gdm:!!:19941::::::
+gnome-initial-setup:!!:19941::::::
+chrony:!!:19941::::::
+sshd:!!:19941::::::
+dnsmasq:!!:19941::::::
+tcpdump:!!:19941::::::
+ansible:$6$wHMlZzH1i13EungB$XSWsp5qgz.p2c3EK5QZ.4IVAx1gTfsmsSuw4AN5Mx4nuqAn5Z4F.2wra4osuc3aXeIxTTm.qsCt7b.ebEzp071:20160:0:99999:7:::
+haproxy:!!:20151::::::
+test:$6$7VKC8LCHmcLgZ90t$CMSVE0pgvWtGrIlMjo64LV0k/PoKZ5M3k9flXgnVyQRkbusvq.WzjkmmUhkUxBtJpoQ2b3w8rWVxjBfJLPc17/:20152:0:9999:7:::
+ 
+[END]
+[U-44] root 이외의 UID가 0 금지
+ 
+[START]
+ 
+판단기준 : root 계정과 동일한 UID를 갖는 계정이 존재하지 않는 경우
+ 
+1. 현황 : 계정별 UID 확인
+root -> UID=0
+ 
+2. 현황 : /etc/passwd 상세 내용
+root:x:0:0:root:/root:/bin/bash
+bin:x:1:1:bin:/bin:/sbin/nologin
+daemon:x:2:2:daemon:/sbin:/sbin/nologin
+adm:x:3:4:adm:/var/adm:/sbin/nologin
+lp:x:4:7:lp:/var/spool/lpd:/sbin/nologin
+sync:x:5:0:sync:/sbin:/bin/sync
+shutdown:x:6:0:shutdown:/sbin:/sbin/shutdown
+halt:x:7:0:halt:/sbin:/sbin/halt
+mail:x:8:12:mail:/var/spool/mail:/sbin/nologin
+operator:x:11:0:operator:/root:/sbin/nologin
+games:x:12:100:games:/usr/games:/sbin/nologin
+ftp:x:14:50:FTP User:/var/ftp:/sbin/nologin
+nobody:x:65534:65534:Kernel Overflow User:/:/sbin/nologin
+tss:x:59:59:Account used for TPM access:/:/usr/sbin/nologin
+systemd-coredump:x:999:997:systemd Core Dumper:/:/sbin/nologin
+dbus:x:81:81:System message bus:/:/sbin/nologin
+polkitd:x:998:996:User for polkitd:/:/sbin/nologin
+avahi:x:70:70:Avahi mDNS/DNS-SD Stack:/var/run/avahi-daemon:/sbin/nologin
+geoclue:x:997:995:User for geoclue:/var/lib/geoclue:/sbin/nologin
+cockpit-wsinstance:x:996:993:User for cockpit-ws instances:/nonexisting:/sbin/nologin
+rtkit:x:172:172:RealtimeKit:/proc:/sbin/nologin
+libstoragemgmt:x:991:991:daemon account for libstoragemgmt:/:/usr/sbin/nologin
+colord:x:990:990:User for colord:/var/lib/colord:/sbin/nologin
+sssd:x:989:989:User for sssd:/:/sbin/nologin
+clevis:x:988:988:Clevis Decryption Framework unprivileged user:/var/cache/clevis:/usr/sbin/nologin
+setroubleshoot:x:987:987:SELinux troubleshoot server:/var/lib/setroubleshoot:/usr/sbin/nologin
+pipewire:x:986:986:PipeWire System Daemon:/run/pipewire:/usr/sbin/nologin
+flatpak:x:985:985:User for flatpak system helper:/:/sbin/nologin
+gdm:x:42:42::/var/lib/gdm:/sbin/nologin
+gnome-initial-setup:x:984:983::/run/gnome-initial-setup/:/sbin/nologin
+chrony:x:983:982:chrony system user:/var/lib/chrony:/sbin/nologin
+sshd:x:74:74:Privilege-separated SSH:/usr/share/empty.sshd:/usr/sbin/nologin
+dnsmasq:x:982:981:Dnsmasq DHCP and DNS server:/var/lib/dnsmasq:/usr/sbin/nologin
+tcpdump:x:72:72::/:/sbin/nologin
+ansible:x:1000:1000::/home/ansible:/bin/bash
+haproxy:x:981:980:haproxy:/var/lib/haproxy:/usr/sbin/nologin
+test:x:1001:1001::/home/test:/bin/bash
+ 
+[END]
+[U-45] root 계정 SU 제한
+ 
+[START]
+ 
+판단기준 : SU 명령어를 특정 그룹에 속한 사용자만 사용하도록 제한 되어 있는 경우 (SU 파일 권한이 4750 인 경우)
+ 
+1. 현황 :
+-rwsr-xr-x. 1 root root 57120 Feb  9  2024 /bin/su
+ 
+2. 현황 : /etc/group에서 wheel 그룹 확인
+root:x:0:
+ 
+3. 현황 : /etc/group 상세 내용
+root:x:0:
+bin:x:1:
+daemon:x:2:
+sys:x:3:
+adm:x:4:
+tty:x:5:
+disk:x:6:
+lp:x:7:
+mem:x:8:
+kmem:x:9:
+wheel:x:10:ansible,test
+cdrom:x:11:
+mail:x:12:
+man:x:15:
+dialout:x:18:
+floppy:x:19:
+games:x:20:
+tape:x:33:
+video:x:39:
+ftp:x:50:
+lock:x:54:
+audio:x:63:
+users:x:100:
+nobody:x:65534:
+utmp:x:22:
+utempter:x:35:
+ssh_keys:x:101:
+tss:x:59:clevis
+input:x:999:
+kvm:x:36:
+render:x:998:
+systemd-journal:x:190:
+systemd-coredump:x:997:
+dbus:x:81:
+polkitd:x:996:
+avahi:x:70:
+geoclue:x:995:
+printadmin:x:994:
+cockpit-wsinstance:x:993:
+rtkit:x:172:
+sgx:x:992:
+libstoragemgmt:x:991:
+colord:x:990:
+sssd:x:989:
+clevis:x:988:
+setroubleshoot:x:987:
+pipewire:x:986:
+flatpak:x:985:
+brlapi:x:984:
+gdm:x:42:
+gnome-initial-setup:x:983:
+chrony:x:982:
+slocate:x:21:
+sshd:x:74:
+dnsmasq:x:981:
+tcpdump:x:72:
+ansible:x:1000:
+haproxy:x:980:
+test:x:1001:
+ 
+[END]
+[U-46] 패스워드 최소 길이 설정
+ 
+[START]
+ 
+판단기준 : 패스워드 최소 길이가 8자 이상으로 설정되어 있는 경우 (공공기관의 경우 9자리 이상)
+판단기준 참고 : /etc/login.defs 파일의 PASS_MIN_LEN 확인 
+1. 현황 : PASS_MIN_LEN 확인 
+ 
+2. 현황 : /etc/login.defs 상세 내용
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+MAIL_DIR	/var/spool/mail
+
+
+
+
+
+
+
+UMASK		022
+
+HOME_MODE	0700
+
+PASS_MAX_DAYS	99999
+PASS_MIN_DAYS	0
+PASS_WARN_AGE	7
+
+
+
+
+UID_MIN                  1000
+UID_MAX                 60000
+SYS_UID_MIN               201
+SYS_UID_MAX               999
+SUB_UID_MIN		   100000
+SUB_UID_MAX		600100000
+SUB_UID_COUNT		    65536
+
+GID_MIN                  1000
+GID_MAX                 60000
+SYS_GID_MIN               201
+SYS_GID_MAX               999
+SUB_GID_MIN		   100000
+SUB_GID_MAX		600100000
+SUB_GID_COUNT		    65536
+
+
+
+
+
+
+
+
+
+
+ENCRYPT_METHOD SHA512
+
+SHA_CRYPT_MAX_ROUNDS 100000
+
+
+
+
+
+
+
+USERGROUPS_ENAB yes
+
+
+CREATE_HOME	yes
+
+
+HMAC_CRYPTO_ALGO SHA512
+ 
+ 
+[END]
+[U-47] 패스워드 최대 사용기간 설정
+ 
+[START]
+ 
+판단기준 : 패스워드 최대 길이가 90일(12주) 이하로 설정되어 있는 경우
+판단기준 참고 : /etc/login.defs 파일의 PASS_MAX_DAYS 확인 
+ 
+1. 현황 : 
+PASS_MAX_DAYS	99999
+ 
+2. 현황 : /etc/login.defs 상세 내용
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+MAIL_DIR	/var/spool/mail
+
+
+
+
+
+
+
+UMASK		022
+
+HOME_MODE	0700
+
+PASS_MAX_DAYS	99999
+PASS_MIN_DAYS	0
+PASS_WARN_AGE	7
+
+
+
+
+UID_MIN                  1000
+UID_MAX                 60000
+SYS_UID_MIN               201
+SYS_UID_MAX               999
+SUB_UID_MIN		   100000
+SUB_UID_MAX		600100000
+SUB_UID_COUNT		    65536
+
+GID_MIN                  1000
+GID_MAX                 60000
+SYS_GID_MIN               201
+SYS_GID_MAX               999
+SUB_GID_MIN		   100000
+SUB_GID_MAX		600100000
+SUB_GID_COUNT		    65536
+
+
+
+
+
+
+
+
+
+
+ENCRYPT_METHOD SHA512
+
+SHA_CRYPT_MAX_ROUNDS 100000
+
+
+
+
+
+
+
+USERGROUPS_ENAB yes
+
+
+CREATE_HOME	yes
+
+
+HMAC_CRYPTO_ALGO SHA512
+ 
+ 
+[END]
+[U-48] 패스워드 최소 사용기간 설정
+ 
+[START]
+ 
+판단기준 : 패스워드 최소 길이가 설정되어 있는 경우 
+판단기준 참고 : /etc/login.defs 파일의 PASS_MIN_DAYS 확인 
+ 
+1. 현황 : 
+PASS_MIN_DAYS	0
+ 
+2. 현황 : /etc/login.defs 상세 내용
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+MAIL_DIR	/var/spool/mail
+
+
+
+
+
+
+
+UMASK		022
+
+HOME_MODE	0700
+
+PASS_MAX_DAYS	99999
+PASS_MIN_DAYS	0
+PASS_WARN_AGE	7
+
+
+
+
+UID_MIN                  1000
+UID_MAX                 60000
+SYS_UID_MIN               201
+SYS_UID_MAX               999
+SUB_UID_MIN		   100000
+SUB_UID_MAX		600100000
+SUB_UID_COUNT		    65536
+
+GID_MIN                  1000
+GID_MAX                 60000
+SYS_GID_MIN               201
+SYS_GID_MAX               999
+SUB_GID_MIN		   100000
+SUB_GID_MAX		600100000
+SUB_GID_COUNT		    65536
+
+
+
+
+
+
+
+
+
+
+ENCRYPT_METHOD SHA512
+
+SHA_CRYPT_MAX_ROUNDS 100000
+
+
+
+
+
+
+
+USERGROUPS_ENAB yes
+
+
+CREATE_HOME	yes
+
+
+HMAC_CRYPTO_ALGO SHA512
+ 
+ 
+[END]
+[U-49] 불필요한 계정 제거
+ 
+[START]
+판단기준 : 불필요한 계정이 존재하지 않는 경우 양호
+판단기준 : 사용하지 않는 Default 계정(lp, uucp, nuucp) 점검
+ 
+1. 현황 : /etc/passwd에서 Default 계정 조회
+lp:x:4:7:lp:/var/spool/lpd:/sbin/nologin
+flatpak:x:985:985:User for flatpak system helper:/:/sbin/nologin
+ 
+2. 최근 로그인 하지 않은 계정 및 의심스러운 계정 확인 
+2-1. 현황 : 마지막 로그인 시간 확인 (lastlog)
+Username         Port     From                                       Latest
+root             pts/0    192.168.1.102                             Mon Mar 24 14:42:43 +0900 2025
+bin                                                                 **Never logged in**
+daemon                                                              **Never logged in**
+adm                                                                 **Never logged in**
+lp                                                                  **Never logged in**
+sync                                                                **Never logged in**
+shutdown                                                            **Never logged in**
+halt                                                                **Never logged in**
+mail                                                                **Never logged in**
+operator                                                            **Never logged in**
+games                                                               **Never logged in**
+ftp                                                                 **Never logged in**
+nobody                                                              **Never logged in**
+tss                                                                 **Never logged in**
+systemd-coredump                                                    **Never logged in**
+dbus                                                                **Never logged in**
+polkitd                                                             **Never logged in**
+avahi                                                               **Never logged in**
+geoclue                                                             **Never logged in**
+cockpit-wsinstance                                                    **Never logged in**
+rtkit                                                               **Never logged in**
+libstoragemgmt                                                      **Never logged in**
+colord                                                              **Never logged in**
+sssd                                                                **Never logged in**
+clevis                                                              **Never logged in**
+setroubleshoot                                                      **Never logged in**
+pipewire                                                            **Never logged in**
+flatpak                                                             **Never logged in**
+gdm              tty1                                               Mon Mar 24 14:25:09 +0900 2025
+gnome-initial-setup                                                    **Never logged in**
+chrony                                                              **Never logged in**
+sshd                                                                **Never logged in**
+dnsmasq                                                             **Never logged in**
+tcpdump                                                             **Never logged in**
+ansible          pts/0    192.168.1.102                             Mon Mar 24 14:24:14 +0900 2025
+haproxy                                                             **Never logged in**
+test             pts/0    192.168.1.110                             Wed Mar 19 11:56:13 +0900 2025
+ 
+3. 현황 : wtmp(last) 접속로그 확인
+root     pts/0        192.168.1.102    Mon Mar 24 14:42   still logged in
+root     pts/0        192.168.1.102    Mon Mar 24 14:42   still running
+root     pts/0        192.168.1.102    Mon Mar 24 14:42 - 14:42  (00:00)
+root     pts/0        192.168.1.102    Mon Mar 24 14:41 - 14:41  (00:00)
+root     pts/0        192.168.1.102    Mon Mar 24 14:41 - 14:41  (00:00)
+root     pts/0        192.168.1.102    Mon Mar 24 14:41 - 14:41  (00:00)
+root     pts/0        192.168.1.102    Mon Mar 24 14:41 - 14:41  (00:00)
+root     pts/0        192.168.1.102    Mon Mar 24 14:39 - 14:39  (00:00)
+root     pts/0        192.168.1.102    Mon Mar 24 14:39 - 14:39  (00:00)
+root     pts/0        192.168.1.102    Mon Mar 24 14:39 - 14:39  (00:00)
+root     pts/0        192.168.1.102    Mon Mar 24 14:39 - 14:39  (00:00)
+root     pts/0        192.168.1.102    Mon Mar 24 14:38 - 14:38  (00:00)
+root     pts/0        192.168.1.102    Mon Mar 24 14:38 - 14:38  (00:00)
+root     pts/0        192.168.1.102    Mon Mar 24 14:38 - 14:38  (00:00)
+root     pts/0        192.168.1.102    Mon Mar 24 14:38 - 14:38  (00:00)
+root     pts/0        192.168.1.102    Mon Mar 24 14:35 - 14:35  (00:00)
+root     pts/0        192.168.1.102    Mon Mar 24 14:35 - 14:35  (00:00)
+root     pts/0        192.168.1.102    Mon Mar 24 14:35 - 14:35  (00:00)
+root     pts/0        192.168.1.102    Mon Mar 24 14:35 - 14:35  (00:00)
+root     pts/0        192.168.1.102    Mon Mar 24 14:29 - 14:29  (00:00)
+root     pts/0        192.168.1.102    Mon Mar 24 14:28 - 14:28  (00:00)
+root     pts/0        192.168.1.102    Mon Mar 24 14:27 - 14:27  (00:00)
+root     pts/0        192.168.1.102    Mon Mar 24 14:26 - 14:26  (00:00)
+reboot   system boot  5.14.0-479.el9.x Mon Mar 24 14:25   still running
+ansible  pts/0        192.168.1.102    Mon Mar 24 14:24 - 14:24  (00:00)
+reboot   system boot  5.14.0-479.el9.x Mon Mar 24 10:53 - 14:24  (03:31)
+ansible  pts/0        192.168.1.102    Mon Mar 24 10:52 - 10:52  (00:00)
+reboot   system boot  5.14.0-479.el9.x Mon Mar 24 09:24 - 10:52  (01:27)
+ansible  pts/0        192.168.1.102    Fri Mar 21 15:53 - 15:53  (00:00)
+reboot   system boot  5.14.0-479.el9.x Fri Mar 21 09:50 - 15:53  (06:02)
+ansible  pts/0        192.168.1.102    Thu Mar 20 15:50 - 15:50  (00:00)
+reboot   system boot  5.14.0-479.el9.x Thu Mar 20 09:38 - 15:50  (06:12)
+ansible  pts/0        192.168.1.102    Wed Mar 19 15:49 - 15:49  (00:00)
+root     pts/0        192.168.1.110    Wed Mar 19 13:24 - 13:24  (00:00)
+root     pts/0        192.168.1.110    Wed Mar 19 13:20 - 13:21  (00:01)
+test     pts/0        192.168.1.110    Wed Mar 19 11:56 - 11:56  (00:00)
+reboot   system boot  5.14.0-479.el9.x Wed Mar 19 11:51 - 15:49  (03:57)
+test     pts/0        192.168.1.110    Wed Mar 19 11:30 - 11:36  (00:05)
+test     pts/0        192.168.1.110    Wed Mar 19 11:29 - 11:30  (00:00)
+test     pts/0        192.168.1.110    Wed Mar 19 11:29 - 11:29  (00:00)
+test     tty2         tty2             Wed Mar 19 11:24 - down   (00:24)
+test     seat0        login screen     Wed Mar 19 11:24 - down   (00:24)
+reboot   system boot  5.14.0-479.el9.x Wed Mar 19 09:34 - 11:48  (02:14)
+ansible  pts/0        192.168.1.102    Tue Mar 18 15:50 - 15:50  (00:00)
+reboot   system boot  5.14.0-479.el9.x Tue Mar 18 09:36 - 15:50  (06:13)
+ansible  pts/0        192.168.1.102    Mon Mar 17 15:53 - 15:53  (00:00)
+reboot   system boot  5.14.0-479.el9.x Mon Mar 17 09:18 - 15:53  (06:34)
+ansible  pts/0        192.168.1.102    Thu Mar 13 15:51 - 15:51  (00:00)
+root     pts/0        192.168.1.102    Thu Mar 13 14:39 - 14:39  (00:00)
+root     pts/0        192.168.1.102    Thu Mar 13 14:39 - 14:39  (00:00)
+root     pts/0        192.168.1.102    Thu Mar 13 14:39 - 14:39  (00:00)
+root     pts/0        192.168.1.102    Thu Mar 13 14:39 - 14:39  (00:00)
+root     pts/0        192.168.1.102    Thu Mar 13 14:39 - 14:39  (00:00)
+reboot   system boot  5.14.0-479.el9.x Thu Mar 13 09:33 - 15:51  (06:17)
+ansible  pts/0        192.168.1.102    Wed Mar 12 15:50 - 15:50  (00:00)
+ansible  pts/0        192.168.1.102    Wed Mar 12 13:25 - 13:25  (00:00)
+root     pts/0        192.168.1.102    Wed Mar 12 13:25 - 13:25  (00:00)
+root     pts/0        192.168.1.102    Wed Mar 12 13:25 - 13:25  (00:00)
+ansible  pts/0        192.168.1.102    Wed Mar 12 13:24 - 13:24  (00:00)
+reboot   system boot  5.14.0-479.el9.x Wed Mar 12 12:16 - 15:50  (03:34)
+reboot   system boot  5.14.0-479.el9.x Tue Mar 11 09:33 - 15:55  (06:21)
+ansible  pts/0        192.168.1.102    Mon Mar 10 15:47 - 15:47  (00:00)
+reboot   system boot  5.14.0-479.el9.x Mon Mar 10 15:06 - 15:47  (00:41)
+ansible  pts/0        192.168.1.102    Mon Mar 10 15:04 - 15:04  (00:00)
+root     pts/0        192.168.1.102    Mon Mar 10 11:30 - 11:30  (00:00)
+root     pts/0        192.168.1.102    Mon Mar 10 11:30 - 11:30  (00:00)
+root     pts/0        192.168.1.102    Mon Mar 10 11:30 - 11:30  (00:00)
+root     pts/0        192.168.1.102    Mon Mar 10 11:30 - 11:30  (00:00)
+root     pts/0        192.168.1.102    Mon Mar 10 11:30 - 11:30  (00:00)
+root     pts/0        192.168.1.102    Mon Mar 10 11:30 - 11:30  (00:00)
+root     pts/0        192.168.1.102    Mon Mar 10 11:30 - 11:30  (00:00)
+root     pts/0        192.168.1.102    Mon Mar 10 11:30 - 11:30  (00:00)
+root     pts/0        192.168.1.102    Mon Mar 10 11:30 - 11:30  (00:00)
+root     pts/0        192.168.1.102    Mon Mar 10 11:30 - 11:30  (00:00)
+root     pts/0        192.168.1.102    Mon Mar 10 11:30 - 11:30  (00:00)
+root     pts/0        192.168.1.102    Mon Mar 10 11:29 - 11:30  (00:00)
+root     pts/0        192.168.1.102    Mon Mar 10 11:21 - 11:21  (00:00)
+root     pts/0        192.168.1.102    Mon Mar 10 11:21 - 11:21  (00:00)
+root     pts/0        192.168.1.102    Mon Mar 10 11:21 - 11:21  (00:00)
+root     pts/0        192.168.1.102    Mon Mar 10 11:16 - 11:16  (00:00)
+root     pts/0        192.168.1.102    Mon Mar 10 11:16 - 11:16  (00:00)
+root     pts/0        192.168.1.102    Mon Mar 10 11:16 - 11:16  (00:00)
+root     pts/0        192.168.1.102    Mon Mar 10 11:16 - 11:16  (00:00)
+root     pts/0        192.168.1.102    Mon Mar 10 11:16 - 11:16  (00:00)
+root     pts/0        192.168.1.102    Mon Mar 10 11:16 - 11:16  (00:00)
+root     pts/0        192.168.1.102    Mon Mar 10 11:16 - 11:16  (00:00)
+root     pts/0        192.168.1.102    Mon Mar 10 11:16 - 11:16  (00:00)
+root     pts/0        192.168.1.102    Mon Mar 10 11:16 - 11:16  (00:00)
+root     pts/0        192.168.1.102    Mon Mar 10 11:16 - 11:16  (00:00)
+root     pts/0        192.168.1.102    Mon Mar 10 09:47 - 09:47  (00:00)
+root     pts/0        192.168.1.102    Mon Mar 10 09:47 - 09:47  (00:00)
+root     pts/0        192.168.1.102    Mon Mar 10 09:47 - 09:47  (00:00)
+reboot   system boot  5.14.0-479.el9.x Mon Mar 10 09:34 - 15:04  (05:30)
+ansible  pts/0        192.168.1.110    Fri Mar  7 13:27 - 13:28  (00:00)
+root     pts/0        192.168.1.102    Fri Mar  7 10:11 - 10:11  (00:00)
+root     pts/0        192.168.1.102    Fri Mar  7 10:11 - 10:11  (00:00)
+root     pts/0        192.168.1.102    Fri Mar  7 10:03 - 10:03  (00:00)
+root     pts/0        192.168.1.102    Fri Mar  7 10:03 - 10:03  (00:00)
+root     pts/0        192.168.1.102    Fri Mar  7 10:03 - 10:03  (00:00)
+root     pts/0        192.168.1.102    Fri Mar  7 10:03 - 10:03  (00:00)
+root     pts/0        192.168.1.102    Fri Mar  7 10:03 - 10:03  (00:00)
+root     pts/0        192.168.1.102    Fri Mar  7 09:51 - 09:51  (00:00)
+root     pts/0        192.168.1.102    Fri Mar  7 09:51 - 09:51  (00:00)
+root     pts/0        192.168.1.102    Fri Mar  7 09:51 - 09:51  (00:00)
+root     pts/0        192.168.1.102    Fri Mar  7 09:51 - 09:51  (00:00)
+root     pts/0        192.168.1.102    Fri Mar  7 09:51 - 09:51  (00:00)
+root     pts/0        192.168.1.102    Fri Mar  7 09:51 - 09:51  (00:00)
+root     pts/0        192.168.1.102    Fri Mar  7 09:51 - 09:51  (00:00)
+root     pts/0        192.168.1.102    Fri Mar  7 09:51 - 09:51  (00:00)
+root     pts/0        192.168.1.102    Fri Mar  7 09:51 - 09:51  (00:00)
+root     pts/0        192.168.1.102    Fri Mar  7 09:51 - 09:51  (00:00)
+root     pts/0        192.168.1.102    Fri Mar  7 09:50 - 09:50  (00:00)
+root     pts/0        192.168.1.102    Fri Mar  7 09:50 - 09:50  (00:00)
+root     pts/0        192.168.1.102    Fri Mar  7 09:50 - 09:50  (00:00)
+root     pts/0        192.168.1.102    Fri Mar  7 09:50 - 09:50  (00:00)
+root     pts/0        192.168.1.102    Fri Mar  7 09:50 - 09:50  (00:00)
+root     pts/0        192.168.1.102    Fri Mar  7 09:50 - 09:50  (00:00)
+root     pts/0        192.168.1.102    Fri Mar  7 09:50 - 09:50  (00:00)
+root     pts/0        192.168.1.102    Fri Mar  7 09:50 - 09:50  (00:00)
+root     pts/0        192.168.1.102    Fri Mar  7 09:50 - 09:50  (00:00)
+root     pts/0        192.168.1.102    Fri Mar  7 09:50 - 09:50  (00:00)
+root     pts/0        192.168.1.102    Fri Mar  7 09:50 - 09:50  (00:00)
+root     pts/0        192.168.1.102    Fri Mar  7 09:50 - 09:50  (00:00)
+root     pts/0        192.168.1.102    Fri Mar  7 09:50 - 09:50  (00:00)
+root     pts/0        192.168.1.102    Fri Mar  7 09:50 - 09:50  (00:00)
+root     pts/0        192.168.1.102    Fri Mar  7 09:50 - 09:50  (00:00)
+root     pts/0        192.168.1.102    Fri Mar  7 09:50 - 09:50  (00:00)
+root     pts/0        192.168.1.102    Fri Mar  7 09:50 - 09:50  (00:00)
+root     pts/0        192.168.1.102    Fri Mar  7 09:50 - 09:50  (00:00)
+root     pts/0        192.168.1.102    Fri Mar  7 09:50 - 09:50  (00:00)
+root     pts/0        192.168.1.102    Fri Mar  7 09:50 - 09:50  (00:00)
+root     pts/0        192.168.1.102    Fri Mar  7 09:48 - 09:48  (00:00)
+root     pts/0        192.168.1.102    Fri Mar  7 09:48 - 09:48  (00:00)
+root     pts/0        192.168.1.102    Fri Mar  7 09:48 - 09:48  (00:00)
+root     pts/0        192.168.1.102    Fri Mar  7 09:48 - 09:48  (00:00)
+root     pts/0        192.168.1.102    Fri Mar  7 09:48 - 09:48  (00:00)
+root     pts/0        192.168.1.102    Fri Mar  7 09:48 - 09:48  (00:00)
+root     pts/0        192.168.1.102    Fri Mar  7 09:48 - 09:48  (00:00)
+root     pts/0        192.168.1.102    Fri Mar  7 09:48 - 09:48  (00:00)
+root     pts/0        192.168.1.102    Fri Mar  7 09:48 - 09:48  (00:00)
+root     pts/0        192.168.1.102    Fri Mar  7 09:48 - 09:48  (00:00)
+reboot   system boot  5.14.0-479.el9.x Fri Mar  7 09:33 - 15:53  (06:20)
+root     tty2         tty2             Thu Mar  6 10:45 - crash  (22:47)
+root     seat0        login screen     Thu Mar  6 10:45 - crash  (22:47)
+reboot   system boot  5.14.0-479.el9.x Thu Mar  6 10:44 - 15:53 (1+05:08)
+reboot   system boot  5.14.0-479.el9.x Thu Mar  6 10:42 - 15:53 (1+05:11)
+root     pts/0        192.168.1.102    Wed Mar  5 15:34 - 15:34  (00:00)
+root     pts/0        192.168.1.102    Wed Mar  5 15:34 - 15:34  (00:00)
+root     pts/0        192.168.1.102    Wed Mar  5 15:34 - 15:34  (00:00)
+root     pts/0        192.168.1.102    Wed Mar  5 15:34 - 15:34  (00:00)
+root     pts/0        192.168.1.102    Wed Mar  5 15:33 - 15:33  (00:00)
+ansible  pts/0        192.168.1.110    Wed Mar  5 15:17 - 15:18  (00:00)
+reboot   system boot  5.14.0-479.el9.x Wed Mar  5 09:36 - 15:49  (06:13)
+root     pts/1        192.168.1.102    Tue Mar  4 12:16 - 12:16  (00:00)
+root     pts/1        192.168.1.102    Tue Mar  4 12:16 - 12:16  (00:00)
+root     pts/1        192.168.1.102    Tue Mar  4 12:16 - 12:16  (00:00)
+root     pts/1        192.168.1.102    Tue Mar  4 12:16 - 12:16  (00:00)
+root     pts/1        192.168.1.102    Tue Mar  4 12:16 - 12:16  (00:00)
+root     pts/1        192.168.1.102    Tue Mar  4 12:15 - 12:16  (00:00)
+root     pts/1        192.168.1.102    Tue Mar  4 12:15 - 12:15  (00:00)
+root     pts/1        192.168.1.102    Tue Mar  4 11:57 - 11:57  (00:00)
+root     pts/1        192.168.1.102    Tue Mar  4 11:57 - 11:57  (00:00)
+root     pts/1        192.168.1.102    Tue Mar  4 11:57 - 11:57  (00:00)
+root     pts/1        192.168.1.102    Tue Mar  4 10:52 - 10:52  (00:00)
+root     pts/1        192.168.1.102    Tue Mar  4 10:52 - 10:52  (00:00)
+root     pts/1        192.168.1.102    Tue Mar  4 10:52 - 10:52  (00:00)
+root     pts/1        192.168.1.102    Tue Mar  4 10:52 - 10:52  (00:00)
+root     pts/1        192.168.1.102    Tue Mar  4 10:52 - 10:52  (00:00)
+root     pts/1        192.168.1.102    Tue Mar  4 10:52 - 10:52  (00:00)
+root     pts/1        192.168.1.102    Tue Mar  4 10:52 - 10:52  (00:00)
+root     pts/1        192.168.1.102    Tue Mar  4 10:52 - 10:52  (00:00)
+root     pts/1        192.168.1.102    Tue Mar  4 10:52 - 10:52  (00:00)
+root     pts/1        192.168.1.102    Tue Mar  4 10:52 - 10:52  (00:00)
+root     pts/1        192.168.1.102    Tue Mar  4 10:52 - 10:52  (00:00)
+root     pts/1        192.168.1.102    Tue Mar  4 10:52 - 10:52  (00:00)
+root     pts/1        192.168.1.102    Tue Mar  4 10:52 - 10:52  (00:00)
+root     pts/1        192.168.1.102    Tue Mar  4 10:52 - 10:52  (00:00)
+root     pts/1        192.168.1.102    Tue Mar  4 10:52 - 10:52  (00:00)
+ansible  pts/1        192.168.1.102    Tue Mar  4 10:43 - 10:43  (00:00)
+root     pts/1        192.168.1.102    Tue Mar  4 10:35 - 10:35  (00:00)
+root     pts/1        192.168.1.102    Tue Mar  4 10:35 - 10:35  (00:00)
+root     pts/1        192.168.1.102    Tue Mar  4 10:35 - 10:35  (00:00)
+root     pts/1        192.168.1.102    Tue Mar  4 10:35 - 10:35  (00:00)
+root     pts/1        192.168.1.102    Tue Mar  4 10:35 - 10:35  (00:00)
+root     tty2         tty2             Tue Mar  4 10:14 - down   (03:11)
+root     seat0        login screen     Tue Mar  4 10:14 - down   (03:11)
+reboot   system boot  5.14.0-479.el9.x Tue Mar  4 10:13 - 13:25  (03:11)
+root     tty2         tty2             Fri Feb 28 14:44 - down   (01:10)
+root     seat0        login screen     Fri Feb 28 14:44 - down   (01:10)
+reboot   system boot  5.14.0-479.el9.x Fri Feb 28 14:44 - 15:54  (01:10)
+root     tty2         tty2             Fri Feb 28 14:25 - down   (00:18)
+root     seat0        login screen     Fri Feb 28 14:25 - down   (00:18)
+reboot   system boot  5.14.0-479.el9.x Fri Feb 28 14:11 - 14:44  (00:33)
+root     tty2         tty2             Fri Feb 28 13:57 - down   (00:03)
+root     seat0        login screen     Fri Feb 28 13:57 - down   (00:03)
+reboot   system boot  5.14.0-479.el9.x Fri Feb 28 13:56 - 14:01  (00:04)
+root     tty2         tty2             Wed Aug  7 10:27 - down   (00:36)
+root     seat0        login screen     Wed Aug  7 10:27 - down   (00:36)
+reboot   system boot  5.14.0-479.el9.x Wed Aug  7 10:21 - 11:04  (00:42)
+root     tty2         tty2             Wed Aug  7 10:20 - down   (00:00)
+root     seat0        login screen     Wed Aug  7 10:20 - down   (00:00)
+root     tty2         tty2             Wed Aug  7 09:41 - 10:20  (00:38)
+root     seat0        login screen     Wed Aug  7 09:41 - 10:20  (00:39)
+reboot   system boot  5.14.0-479.el9.x Wed Aug  7 09:22 - 10:21  (00:59)
+fedora   pts/2        ::1              Tue Aug  6 15:37 - 15:39  (00:02)
+root     tty2         tty2             Tue Aug  6 14:30 - crash  (18:51)
+root     seat0        login screen     Tue Aug  6 14:30 - crash  (18:51)
+root     tty1                          Tue Aug  6 14:29 - crash  (18:52)
+reboot   system boot  5.14.0-479.el9.x Tue Aug  6 14:28 - 10:21  (19:52)
+root     tty1                          Tue Aug  6 14:25 - down   (00:03)
+root     tty2         tty2             Tue Aug  6 14:23 - down   (00:05)
+root     seat0        login screen     Tue Aug  6 14:23 - down   (00:05)
+reboot   system boot  5.14.0-479.el9.x Tue Aug  6 14:16 - 14:28  (00:12)
+root     pts/1        192.168.10.30    Tue Aug  6 13:30 - 13:31  (00:00)
+root     tty2         tty2             Tue Aug  6 13:26 - down   (00:49)
+root     seat0        login screen     Tue Aug  6 13:26 - down   (00:49)
+reboot   system boot  5.14.0-479.el9.x Tue Aug  6 13:24 - 14:16  (00:51)
+root     tty2         tty2             Tue Aug  6 13:03 - crash  (00:21)
+root     seat0        login screen     Tue Aug  6 13:03 - crash  (00:21)
+reboot   system boot  5.14.0-479.el9.x Tue Aug  6 11:44 - 14:16  (02:31)
+root     tty7         tty7             Tue Aug  6 11:34 - crash  (00:09)
+root     seat0        login screen     Tue Aug  6 11:34 - crash  (00:09)
+reboot   system boot  5.14.0-479.el9.x Tue Aug  6 11:15 - 14:16  (03:00)
+
+wtmp begins Tue Aug  6 11:15:46 2024
+ 
+ 
+[END]
+[U-50] 관리자 그룹에 최소한의 계정 포함
+ 
+[START]
+ 
+판단기준 : 관리자 그룹(root or system)에 불필요한 계정이 등록되어 있지 않은 경우
+ 
+1. 현황 : root 그룹 확인
+root:x:0:
+ 
+2. 현황 : /etc/passwd (참고)
+root:x:0:0:root:/root:/bin/bash
+bin:x:1:1:bin:/bin:/sbin/nologin
+daemon:x:2:2:daemon:/sbin:/sbin/nologin
+adm:x:3:4:adm:/var/adm:/sbin/nologin
+lp:x:4:7:lp:/var/spool/lpd:/sbin/nologin
+sync:x:5:0:sync:/sbin:/bin/sync
+shutdown:x:6:0:shutdown:/sbin:/sbin/shutdown
+halt:x:7:0:halt:/sbin:/sbin/halt
+mail:x:8:12:mail:/var/spool/mail:/sbin/nologin
+operator:x:11:0:operator:/root:/sbin/nologin
+games:x:12:100:games:/usr/games:/sbin/nologin
+ftp:x:14:50:FTP User:/var/ftp:/sbin/nologin
+nobody:x:65534:65534:Kernel Overflow User:/:/sbin/nologin
+tss:x:59:59:Account used for TPM access:/:/usr/sbin/nologin
+systemd-coredump:x:999:997:systemd Core Dumper:/:/sbin/nologin
+dbus:x:81:81:System message bus:/:/sbin/nologin
+polkitd:x:998:996:User for polkitd:/:/sbin/nologin
+avahi:x:70:70:Avahi mDNS/DNS-SD Stack:/var/run/avahi-daemon:/sbin/nologin
+geoclue:x:997:995:User for geoclue:/var/lib/geoclue:/sbin/nologin
+cockpit-wsinstance:x:996:993:User for cockpit-ws instances:/nonexisting:/sbin/nologin
+rtkit:x:172:172:RealtimeKit:/proc:/sbin/nologin
+libstoragemgmt:x:991:991:daemon account for libstoragemgmt:/:/usr/sbin/nologin
+colord:x:990:990:User for colord:/var/lib/colord:/sbin/nologin
+sssd:x:989:989:User for sssd:/:/sbin/nologin
+clevis:x:988:988:Clevis Decryption Framework unprivileged user:/var/cache/clevis:/usr/sbin/nologin
+setroubleshoot:x:987:987:SELinux troubleshoot server:/var/lib/setroubleshoot:/usr/sbin/nologin
+pipewire:x:986:986:PipeWire System Daemon:/run/pipewire:/usr/sbin/nologin
+flatpak:x:985:985:User for flatpak system helper:/:/sbin/nologin
+gdm:x:42:42::/var/lib/gdm:/sbin/nologin
+gnome-initial-setup:x:984:983::/run/gnome-initial-setup/:/sbin/nologin
+chrony:x:983:982:chrony system user:/var/lib/chrony:/sbin/nologin
+sshd:x:74:74:Privilege-separated SSH:/usr/share/empty.sshd:/usr/sbin/nologin
+dnsmasq:x:982:981:Dnsmasq DHCP and DNS server:/var/lib/dnsmasq:/usr/sbin/nologin
+tcpdump:x:72:72::/:/sbin/nologin
+ansible:x:1000:1000::/home/ansible:/bin/bash
+haproxy:x:981:980:haproxy:/var/lib/haproxy:/usr/sbin/nologin
+test:x:1001:1001::/home/test:/bin/bash
+ 
+[END]
+[U-51] 계정이 존재하지 않는 GID 금지
+ 
+[START]
+ 
+판단기준 : 불필요한 그룹(계정이 존재하지 않거나 운영에 사용되지 않는 그룹)이 존재하는 경우 취약
+판단기준 참고 : /etc/group 및 /etc/passwd 파일을 비교해 판단
+ 
+1. 현황 : /etc/group 그룹 확인
+root:x:0:
+bin:x:1:
+daemon:x:2:
+sys:x:3:
+adm:x:4:
+tty:x:5:
+disk:x:6:
+lp:x:7:
+mem:x:8:
+kmem:x:9:
+wheel:x:10:ansible,test
+cdrom:x:11:
+mail:x:12:
+man:x:15:
+dialout:x:18:
+floppy:x:19:
+games:x:20:
+tape:x:33:
+video:x:39:
+ftp:x:50:
+lock:x:54:
+audio:x:63:
+users:x:100:
+nobody:x:65534:
+utmp:x:22:
+utempter:x:35:
+ssh_keys:x:101:
+tss:x:59:clevis
+input:x:999:
+kvm:x:36:
+render:x:998:
+systemd-journal:x:190:
+systemd-coredump:x:997:
+dbus:x:81:
+polkitd:x:996:
+avahi:x:70:
+geoclue:x:995:
+printadmin:x:994:
+cockpit-wsinstance:x:993:
+rtkit:x:172:
+sgx:x:992:
+libstoragemgmt:x:991:
+colord:x:990:
+sssd:x:989:
+clevis:x:988:
+setroubleshoot:x:987:
+pipewire:x:986:
+flatpak:x:985:
+brlapi:x:984:
+gdm:x:42:
+gnome-initial-setup:x:983:
+chrony:x:982:
+slocate:x:21:
+sshd:x:74:
+dnsmasq:x:981:
+tcpdump:x:72:
+ansible:x:1000:
+haproxy:x:980:
+test:x:1001:
+ 
+2. 현황 : /etc/passwd 확인
+root:x:0:0:root:/root:/bin/bash
+bin:x:1:1:bin:/bin:/sbin/nologin
+daemon:x:2:2:daemon:/sbin:/sbin/nologin
+adm:x:3:4:adm:/var/adm:/sbin/nologin
+lp:x:4:7:lp:/var/spool/lpd:/sbin/nologin
+sync:x:5:0:sync:/sbin:/bin/sync
+shutdown:x:6:0:shutdown:/sbin:/sbin/shutdown
+halt:x:7:0:halt:/sbin:/sbin/halt
+mail:x:8:12:mail:/var/spool/mail:/sbin/nologin
+operator:x:11:0:operator:/root:/sbin/nologin
+games:x:12:100:games:/usr/games:/sbin/nologin
+ftp:x:14:50:FTP User:/var/ftp:/sbin/nologin
+nobody:x:65534:65534:Kernel Overflow User:/:/sbin/nologin
+tss:x:59:59:Account used for TPM access:/:/usr/sbin/nologin
+systemd-coredump:x:999:997:systemd Core Dumper:/:/sbin/nologin
+dbus:x:81:81:System message bus:/:/sbin/nologin
+polkitd:x:998:996:User for polkitd:/:/sbin/nologin
+avahi:x:70:70:Avahi mDNS/DNS-SD Stack:/var/run/avahi-daemon:/sbin/nologin
+geoclue:x:997:995:User for geoclue:/var/lib/geoclue:/sbin/nologin
+cockpit-wsinstance:x:996:993:User for cockpit-ws instances:/nonexisting:/sbin/nologin
+rtkit:x:172:172:RealtimeKit:/proc:/sbin/nologin
+libstoragemgmt:x:991:991:daemon account for libstoragemgmt:/:/usr/sbin/nologin
+colord:x:990:990:User for colord:/var/lib/colord:/sbin/nologin
+sssd:x:989:989:User for sssd:/:/sbin/nologin
+clevis:x:988:988:Clevis Decryption Framework unprivileged user:/var/cache/clevis:/usr/sbin/nologin
+setroubleshoot:x:987:987:SELinux troubleshoot server:/var/lib/setroubleshoot:/usr/sbin/nologin
+pipewire:x:986:986:PipeWire System Daemon:/run/pipewire:/usr/sbin/nologin
+flatpak:x:985:985:User for flatpak system helper:/:/sbin/nologin
+gdm:x:42:42::/var/lib/gdm:/sbin/nologin
+gnome-initial-setup:x:984:983::/run/gnome-initial-setup/:/sbin/nologin
+chrony:x:983:982:chrony system user:/var/lib/chrony:/sbin/nologin
+sshd:x:74:74:Privilege-separated SSH:/usr/share/empty.sshd:/usr/sbin/nologin
+dnsmasq:x:982:981:Dnsmasq DHCP and DNS server:/var/lib/dnsmasq:/usr/sbin/nologin
+tcpdump:x:72:72::/:/sbin/nologin
+ansible:x:1000:1000::/home/ansible:/bin/bash
+haproxy:x:981:980:haproxy:/var/lib/haproxy:/usr/sbin/nologin
+test:x:1001:1001::/home/test:/bin/bash
+ 
+[END]
+[U-52] 동일한 UID 금지
+ 
+[START]
+ 
+판단기준 : 동일한 UID 사용하는 계정 있는지 확인(없으면 양호)
+ 
+1. 현황 : /etc/passwd에서 UID 추출
+UID=0 -> root
+UID=1 -> bin
+UID=2 -> daemon
+UID=3 -> adm
+UID=4 -> lp
+UID=5 -> sync
+UID=6 -> shutdown
+UID=7 -> halt
+UID=8 -> mail
+UID=11 -> operator
+UID=12 -> games
+UID=14 -> ftp
+UID=65534 -> nobody
+UID=59 -> tss
+UID=999 -> systemd-coredump
+UID=81 -> dbus
+UID=998 -> polkitd
+UID=70 -> avahi
+UID=997 -> geoclue
+UID=996 -> cockpit-wsinstance
+UID=172 -> rtkit
+UID=991 -> libstoragemgmt
+UID=990 -> colord
+UID=989 -> sssd
+UID=988 -> clevis
+UID=987 -> setroubleshoot
+UID=986 -> pipewire
+UID=985 -> flatpak
+UID=42 -> gdm
+UID=984 -> gnome-initial-setup
+UID=983 -> chrony
+UID=74 -> sshd
+UID=982 -> dnsmasq
+UID=72 -> tcpdump
+UID=1000 -> ansible
+UID=981 -> haproxy
+UID=1001 -> test
+ 
+[END]
+[U-53] 사용자 shell점검
+ 
+[START]
+ 
+판단기준 : 로그인이 필요하지 않은 계정에 /bin/false(/sbin/nologin)이 부여되어 있으면 양호
+ 
+1. 현황 : 로그인이 불필요한 계정의 SHELL 점검 (/etc/passwd) 
+bin:x:1:1:bin:/bin:/sbin/nologin
+daemon:x:2:2:daemon:/sbin:/sbin/nologin
+adm:x:3:4:adm:/var/adm:/sbin/nologin
+operator:x:11:0:operator:/root:/sbin/nologin
+games:x:12:100:games:/usr/games:/sbin/nologin
+nobody:x:65534:65534:Kernel Overflow User:/:/sbin/nologin
+systemd-coredump:x:999:997:systemd Core Dumper:/:/sbin/nologin
+ 
+[END]
+[U-54] Session Timeout 설정
+ 
+[START]
+ 
+판단기준 : Session TIMEOUT=600(10분) 이하로 설정되어 있으면 양호
+판단기준 참고 : /etc/profile 파일의 TIMEOUT=600 혹은 TMOUT=600 이상이면 양호
+ 
+1. 현황 : /etc/profile 파일의 TIMEOUT/TMOUT 확인
+ 
+판단기준 참고 : /etc/csh.login 또는 /etc/csh.cshrc의 autologout값이 10 이상이면 양호
+ 
+2-1. 현황 : grep -i autologout /etc/csh.login | grep -v ^#
+ 
+2-2. 현황 : grep -i autologout /etc/csh.cshrc | grep -v ^#
+ 
+ 
+[END]
+[U-05] root 홈, 패스 디렉터리 권한 및 패스 설정
+ 
+[START]
+판단기준 : PATH 환경변수에서 .(DOT)이 맨 뒤에 위치하거나 없으면 양호
+ 
+현황 : PATH 환경변수
+/sbin:/bin:/usr/sbin:/usr/bin
+ 
+[END]
+[U-06] 파일 및 디렉터리 소유자 설정
+ 
+[START]
+ 
+판단기준 : 소유자가 존재하지 않는 파일 디렉토리 중 중요한 파일인지 확인
+1. 현황 : find / ( -nouser -o -nogroup ) -xdev 
+find: warning: you have specified the global option -xdev after the argument (, but global options are not positional, i.e., -xdev affects tests specified before it as well as those specified after it.  Please specify global options before other arguments.
+ 
+ 
+[END]
+[U-07] /etc/passwd 파일 소유자 및 권한설정
+ 
+[START]
+판단기준 : /etc/passwd 파일의 소유자가 root이고, 파일권한이 644이하이면 양호
+ 
+현황 : ls -al /etc/passwd
+-rw-r--r-- 1 root root 2062 Mar 13 14:39 /etc/passwd
+ 
+[END]
+[U-08] /etc/shadow 파일 소유자 및 권한설정
+ 
+[START]
+판단기준 : /etc/shadow 파일의 소유자가 root이고, 파일권한이 400 이하이면 양호
+ 
+현황 : ls -al /etc/shadow
+---------- 1 root root 1258 Mar 13 14:39 /etc/shadow
+ 
+ 
+[END]
+[U-09] /etc/hosts 파일 소유자 및 권한 설정
+ 
+[START]
+판단기준 : /etc/hosts 파일의 소유자가 root이고, 파일권한이 600이하이면 양호
+ 
+현황 : ls -alL /etc/hosts
+-rw-r--r-- 1 root root 305 Mar  4 11:57 /etc/hosts
+ 
+[END]
+[U-10] /etc/(x)inetd.conf 파일 소유자 및 권한 설정
+ 
+[START]
+ 
+판단기준 : /etc/(x)inetd.conf 파일의 소유자가 root이고, 권한이 600 이하이면 양호
+1. 현황 : ls -l /etc/xinetd.conf
+ls: cannot access '/etc/xinetd.conf': No such file or directory
+ 
+2. 현황 : ls -al /etc/xinetd.d/* (참고) 
+ls: cannot access '/etc/xinetd.d/*': No such file or directory
+ 
+ 
+[END]
+[U-11] /etc/syslog.conf 파일 소유자 및 권한 설정
+ 
+[START]
+ 
+판단기준 : /etc/syslog.conf 파일의 소유자가 root(또는 bin,sys)이고, 권한이 644 이하이면 양호
+ 
+1. 현황 : syslog 서비스 확인
+root        1042       1  0 14:25 ?        00:00:00 /usr/sbin/rsyslogd -n
+ 
+2. 현황 : syslog.conf 파일 확인
+ls: cannot access '/etc/syslog.conf': No such file or directory
+ls: cannot access '/etc/isyslog.conf': No such file or directory
+-rw-r--r--. 1 root root 3380 Jan  8  2024 /etc/rsyslog.conf
+ls: cannot access '/etc/syslog-ng/syslog-ng.conf': No such file or directory
+ 
+[END]
+[U-12] /etc/services 파일 소유자 및 권한설정
+ 
+[START]
+판단기준 참고 : /etc/services 파일의 소유자가 root이고, 퍼미션이 644 이하이면 양호
+ 
+현황 : ls -alL /etc/services
+-rw-r--r--. 1 root root 692252 Jun 23  2020 /etc/services
+ls: cannot access '/etc/inet/services': No such file or directory
+ 
+[END]
+[U-13] SUID, SGID, Sticky bit 설정 파일 점검
+ 
+[START]
+ 
+판단기준 참고 : 중요 파일 및 디렉터리의 SUID, SGID, Sticky bit 설정이 4750인지 확인
+ 
+ls: cannot access '/sbin/dump': No such file or directory
+ls: cannot access '/usr/bin/lpq-lpd': No such file or directory
+ls: cannot access '/sbin/restore': No such file or directory
+ls: cannot access '/usr/bin/lpr-lpd': No such file or directory
+ls: cannot access '/usr/sbin/lpc-lpd': No such file or directory
+ls: cannot access '/usr/sbin/traceroute': No such file or directory
+ls: cannot access '/usr/bin/lprm-lpd': No such file or directory
+-rwsr-xr-x. 1 root root 24016 Jun 18  2024 /sbin/unix_chkpwd
+-rwsr-xr-x. 1 root root 57928 Apr  4  2022 /usr/bin/at
+lrwxrwxrwx. 1 root root    27 Aug  6  2024 /usr/bin/lpq -> /etc/alternatives/print-lpq
+lrwxrwxrwx. 1 root root    23 Aug  6  2024 /usr/bin/lpr -> /etc/alternatives/print
+lrwxrwxrwx. 1 root root    28 Aug  6  2024 /usr/bin/lprm -> /etc/alternatives/print-lprm
+-rwsr-xr-x. 1 root root 41928 Jul  3  2024 /usr/bin/newgrp
+lrwxrwxrwx. 1 root root    27 Aug  6  2024 /usr/sbin/lpc -> /etc/alternatives/print-lpc
+ 
+ 
+[END]
+[U-14] 사용자, 시스템 시작파일 및 환경파일 소유자 및 권한 설정
+ 
+[START]
+판단기준 참고 : 시스템 환경파일이 있는경우, 소유자가 root이고 권한이 644이하일 경우 양호
+판단기준 참고 : 홈 디렉터리 환경변수 파일에 root와 소유자만 쓰기 권한이 부여된 경우 양호
+ 
+1. 현황 : 환경변수 파일 확인
+ls: cannot access '/.profile': No such file or directory
+ls: cannot access '/.cshrc': No such file or directory
+ls: cannot access '/.kshrc': No such file or directory
+ls: cannot access '/.login': No such file or directory
+ls: cannot access '/.bash_profile': No such file or directory
+ls: cannot access '/.bashrc': No such file or directory
+ls: cannot access '/.bash_login': No such file or directory
+ls: cannot access '/.xinitrc': No such file or directory
+ls: cannot access '/.xsession': No such file or directory
+ls: cannot access '/.exrc': No such file or directory
+ls: cannot access '/.netrc': No such file or directory
+ 
+2. 현황 : 홈 디렉토리(/root) 경로의 쓰기권한 확인 ( 환경변수만 확인하면 됨)
+total 352
+dr-xr-x---. 17 root root   4096 Mar 24 14:42 .
+dr-xr-xr-x. 19 root root    267 Aug  6  2024 ..
+drwx------   3 root root     17 Mar  4 10:35 .ansible
+-rw-------.  1 root root   2814 Mar 19 13:24 .bash_history
+-rw-r--r--.  1 root root     18 Aug 10  2021 .bash_logout
+-rw-r--r--.  1 root root    141 Aug 10  2021 .bash_profile
+-rw-r--r--   1 root root    518 Aug  7  2024 .bashrc
+drwx------.  9 root root    132 Aug  6  2024 .cache
+drwx------. 13 root root   4096 Aug  7  2024 .config
+-rw-r--r--.  1 root root    100 Aug 10  2021 .cshrc
+-rw-------   1 root root     32 Mar 19 11:24 .lesshst
+drwx------.  4 root root     32 Aug  6  2024 .local
+drwxr-xr-x   4 root root     39 Aug  6  2024 .mozilla
+drwx------.  2 root root     71 Mar  4 10:18 .ssh
+-rw-r--r--.  1 root root    129 Aug 10  2021 .tcshrc
+drwxr-xr-x   2 root root     71 Aug  7  2024 Desktop
+drwxr-xr-x   2 root root      6 Aug  7  2024 Documents
+drwxr-xr-x   2 root root      6 Aug  7  2024 Downloads
+-rw-r--r--   1 root root  51300 Mar 24 14:42 Linux_server_script_result.txt
+drwxr-xr-x   2 root root      6 Aug  7  2024 Music
+drwxr-xr-x   2 root root      6 Aug  7  2024 Pictures
+drwxr-xr-x   2 root root      6 Aug  7  2024 Public
+drwxr-xr-x   2 root root      6 Aug  7  2024 Templates
+drwxr-xr-x   2 root root      6 Aug  7  2024 Videos
+-rw-------.  1 root root   1250 Aug  6  2024 anaconda-ks.cfg
+-rw-r--r--   1 root root     91 Mar 10 11:16 hwreport.txt
+-rw-r--r--   1 root root 181271 Mar 24 14:41 lb.example.com_Linux_192.168.1.200_0324.txt
+drwxr-xr-x   2 root root     61 Aug  7  2024 test
+ 
+[END]
+[U-15] World writable 파일 점검
+ 
+[START]
+참고판단 기준 >> world writable 파일이 존재하지 않거나, 중요 파일인 경우 644 이하이면 양호 
+ 
+현황 : find / ! \( -path /tmp -prune \) -type f -perm -o=w -ls
+ 
+ 
+[END]
+[U-16] /dev에 존재하지 않는 device 파일 점검
+ 
+[START]
+판단기준 참고 : 아래 find 결과 값에서 major, minor number 값을 가지고 있는 경우 양호
+ 
+현황 : find /dev -type f -exec ls -l {} \;
+ 
+[END]
+[U-17] /root/.rhosts, hosts.equiv 사용 금지
+ 
+[START]
+판단기준 : 파일이 존재하지 않거나, 파일 소유자가 root 또는 해당 계정이면서 권한이 600 이하이고 파일에 +가 없으면 양호
+판단기준 참고 : /etc/hosts.equiv : 서버 설정 파일
+판단기준 참고 : /.rhosts 개별 사용자의 설정 파일
+ 
+1. 현황 : ls -al /etc/hosts.equiv
+ls: cannot access '/etc/hosts.equiv': No such file or directory
+ 
+cat: /etc/hosts.equiv: No such file or directory
+ 
+2. 현황 : ls -al /root/.rhosts
+ls: cannot access '/root/.rhosts': No such file or directory
+ 
+cat: /root/.rhosts: No such file or directory
+ 
+[END]
+[U-18] 접속 IP 및 포트 제한
+ 
+[START]
+판단기준 참고 : /etc/hosts.deny 파일 내에 ALL:ALL 설정되어 있고, /etc/hosts.allow 파일 내에 서버로 접속하는 접속 IP대역을 설정했을 경우 양호
+ 
+1. 현황 : 차단설정 /etc/hosts.deny
+ 
+ 
+2. 현황 : 허용설정 /etc/hosts.allow 
+ 
+ 
+[END]
+[U-55] Hosts.lpd 파일 소유자 및 권한 설정
+ 
+[START]
+판단기준 참고 :  파일이 존재하지 않거나, 파일 존재시 소유자가 root이고 권한이 600 이하면 양호
+ 
+현황 : ls -alL /etc/hosts.lpd
+ls: cannot access '/etc/hosts.lpd': No such file or directory
+ 
+ 
+[END]
+[U-56] UMASK 설정 관리
+ 
+[START]
+ 
+판단기준 : /etc/default/login 파일 내에 umask 설정값이 022로 설정되어 있으면 양호 
+ 
+1. 현황 : etc/profile umask 설정 
+Usage: grep [OPTION]... PATTERNS [FILE]...
+Try 'grep --help' for more information.
+ 
+2. 현황 : umask(명령어) 실행값 = 
+umask=0022
+ 
+ 
+[END]
+[U-57] 홈 디렉터리 소유자 및 권한 설정
+ 
+[START]
+판단기준 : 홈디렉토리 소유자가 해당 계정이고, 타 사용자 쓰기 권한이 제거된 경우
+ 
+1. 현황 : 소유자@홈디렉토리
+adm @ /var/adm
+ansible @ /home/ansible
+avahi @ /var/run/avahi-daemon
+bin @ /bin
+chrony @ /var/lib/chrony
+clevis @ /var/cache/clevis
+cockpit-wsinstance @ /nonexisting
+colord @ /var/lib/colord
+daemon @ /sbin
+dbus @ /
+dnsmasq @ /var/lib/dnsmasq
+flatpak @ /
+ftp @ /var/ftp
+games @ /usr/games
+gdm @ /var/lib/gdm
+geoclue @ /var/lib/geoclue
+gnome-initial-setup @ /run/gnome-initial-setup/
+halt @ /sbin
+haproxy @ /var/lib/haproxy
+libstoragemgmt @ /
+lp @ /var/spool/lpd
+mail @ /var/spool/mail
+nobody @ /
+operator @ /root
+pipewire @ /run/pipewire
+polkitd @ /
+root @ /root
+rtkit @ /proc
+setroubleshoot @ /var/lib/setroubleshoot
+shutdown @ /sbin
+sshd @ /usr/share/empty.sshd
+sssd @ /
+sync @ /sbin
+systemd-coredump @ /
+tcpdump @ /
+test @ /home/test
+tss @ /
+ 
+2. 현황 : 홈디렉토리의 권한 확인
+drwx------ 5 ansible ansible 127 Mar 10 15:04 /home/ansible
+drwx------ 14 test test 4096 Mar 19 11:30 /home/test
+dr-xr-xr-x 305 root root 0 Mar 24 14:25 /proc
+dr-xr-x---. 17 root root 4096 Mar 24 14:42 /root
+drwxr-xr-x. 2 root root 6 Jun 25  2024 /usr/games
+drwx--x--x. 2 root root 6 Jul 10  2024 /usr/share/empty.sshd
+drwxr-xr-x. 2 root root 6 Jun 25  2024 /var/adm
+drwxr-xr-x. 2 root root 6 Jun 25  2024 /var/ftp
+drwxr-x---. 2 chrony chrony 19 Mar 24 14:24 /var/lib/chrony
+drwxr-xr-x. 4 colord colord 67 Aug  6  2024 /var/lib/colord
+drwxr-xr-x. 2 root dnsmasq 6 Mar 15  2024 /var/lib/dnsmasq
+drwxrwx--T. 5 gdm gdm 49 Aug  6  2024 /var/lib/gdm
+drwxr-xr-x. 2 geoclue geoclue 6 Dec  1  2022 /var/lib/geoclue
+drwxr-xr-x 2 root root 19 Mar 24 14:25 /var/lib/haproxy
+drwx------. 2 setroubleshoot setroubleshoot 6 Aug  1  2023 /var/lib/setroubleshoot
+drwxr-xr-x 2 avahi avahi 80 Mar 24 14:25 /var/run/avahi-daemon
+drwxr-xr-x. 2 root root 6 Jun 25  2024 /var/spool/lpd
+drwxrwxr-x. 2 root mail 47 Mar  7 10:11 /var/spool/mail
+ 
+[END]
+[U-58] 홈 디렉터리로 지정한 디렉터리의 존재 관리
+ 
+[START]
+판단기준 : 홈 디렉터리가 없는 사용자가 없는 경우 양호
+ 
+현황 : /etc/passwd의 홈디렉토리
+========
+ID : root
+해당 디렉토리 있음 : /root
+/root 존재함
+========
+ID : bin
+해당 디렉토리 있음 : /bin
+/bin 존재함
+========
+ID : daemon
+해당 디렉토리 있음 : /sbin
+/sbin 존재함
+========
+ID : adm
+해당 디렉토리 있음 : /var/adm
+/var/adm 존재함
+========
+ID : lp
+해당 디렉토리 있음 : /var/spool/lpd
+/var/spool/lpd 존재함
+========
+ID : sync
+해당 디렉토리 있음 : /sbin
+/sbin 존재함
+========
+ID : shutdown
+해당 디렉토리 있음 : /sbin
+/sbin 존재함
+========
+ID : halt
+해당 디렉토리 있음 : /sbin
+/sbin 존재함
+========
+ID : mail
+해당 디렉토리 있음 : /var/spool/mail
+/var/spool/mail 존재함
+========
+ID : operator
+해당 디렉토리 있음 : /root
+/root 존재함
+========
+ID : games
+해당 디렉토리 있음 : /usr/games
+/usr/games 존재함
+========
+ID : ftp
+해당 디렉토리 있음 : /var/ftp
+/var/ftp 존재함
+========
+ID : nobody
+해당 디렉토리 있음 : /
+/ 존재함
+========
+ID : tss
+해당 디렉토리 있음 : /
+/ 존재함
+========
+ID : systemd-coredump
+해당 디렉토리 있음 : /
+/ 존재함
+========
+ID : dbus
+해당 디렉토리 있음 : /
+/ 존재함
+========
+ID : polkitd
+해당 디렉토리 있음 : /
+/ 존재함
+========
+ID : avahi
+해당 디렉토리 있음 : /var/run/avahi-daemon
+/var/run/avahi-daemon 존재함
+========
+ID : geoclue
+해당 디렉토리 있음 : /var/lib/geoclue
+/var/lib/geoclue 존재함
+========
+ID : cockpit-wsinstance
+ 
+디렉토리 없음(취약) : /nonexisting
+ 
+/nonexisting 없음
+========
+ID : rtkit
+해당 디렉토리 있음 : /proc
+/proc 존재함
+========
+ID : libstoragemgmt
+해당 디렉토리 있음 : /
+/ 존재함
+========
+ID : colord
+해당 디렉토리 있음 : /var/lib/colord
+/var/lib/colord 존재함
+========
+ID : sssd
+해당 디렉토리 있음 : /
+/ 존재함
+========
+ID : clevis
+ 
+디렉토리 없음(취약) : /var/cache/clevis
+ 
+/var/cache/clevis 없음
+========
+ID : setroubleshoot
+해당 디렉토리 있음 : /var/lib/setroubleshoot
+/var/lib/setroubleshoot 존재함
+========
+ID : pipewire
+ 
+디렉토리 없음(취약) : /run/pipewire
+ 
+/run/pipewire 없음
+========
+ID : flatpak
+해당 디렉토리 있음 : /
+/ 존재함
+========
+ID : gdm
+해당 디렉토리 있음 : /var/lib/gdm
+/var/lib/gdm 존재함
+========
+ID : gnome-initial-setup
+ 
+디렉토리 없음(취약) : /run/gnome-initial-setup/
+ 
+/run/gnome-initial-setup/ 없음
+========
+ID : chrony
+해당 디렉토리 있음 : /var/lib/chrony
+/var/lib/chrony 존재함
+========
+ID : sshd
+해당 디렉토리 있음 : /usr/share/empty.sshd
+/usr/share/empty.sshd 존재함
+========
+ID : dnsmasq
+해당 디렉토리 있음 : /var/lib/dnsmasq
+/var/lib/dnsmasq 존재함
+========
+ID : tcpdump
+해당 디렉토리 있음 : /
+/ 존재함
+========
+ID : ansible
+해당 디렉토리 있음 : /home/ansible
+/home/ansible 존재함
+========
+ID : haproxy
+해당 디렉토리 있음 : /var/lib/haproxy
+/var/lib/haproxy 존재함
+========
+ID : test
+해당 디렉토리 있음 : /home/test
+/home/test 존재함
+ 
+[END]
+[U-59] 숨겨진 파일 및 디렉터리 검색 및 제거
+ 
+[START]
+판단기준 : 숨겨져 있는 파일 및 디렉터리가 있더라도 시스템상에 영향을 끼치지 않으면 양호
+ 
+1. 현황(숨겨진 파일) : find / -name .* -type f 
+/boot/.vmlinuz-5.14.0-479.el9.x86_64.hmac
+/home/fedora/.bash_logout
+/home/fedora/.bash_profile
+/home/fedora/.bashrc
+/home/fedora/.bash_history
+/home/ansible/.bash_logout
+/home/ansible/.bash_profile
+/home/ansible/.bashrc
+/home/ansible/.bash_history
+/home/test/.bash_logout
+/home/test/.bash_profile
+/home/test/.bashrc
+/home/test/.local/share/flatpak/.changed
+/home/test/.config/.gsd-keyboard.settings-ported
+/home/test/.lesshst
+/home/test/.bash_history
+/run/lsm/ipc/.lsmd-ipc-lock
+/run/user/42/.mutter-Xwaylandauth.OOF232
+/run/initramfs/.need_shutdown
+/sys/module/vmwgfx/notes/.note.Linux
+/sys/module/vmwgfx/notes/.note.gnu.build-id
+/sys/module/vmwgfx/sections/.altinstructions
+/sys/module/vmwgfx/sections/.orc_unwind
+/sys/module/vmwgfx/sections/.data.once
+/sys/module/vmwgfx/sections/.data..read_mostly
+/sys/module/vmwgfx/sections/.printk_index
+/sys/module/vmwgfx/sections/.note.Linux
+/sys/module/vmwgfx/sections/.static_call_sites
+/sys/module/vmwgfx/sections/.strtab
+/sys/module/vmwgfx/sections/.exit.text
+/sys/module/vmwgfx/sections/.exit.data
+/sys/module/vmwgfx/sections/.bss
+/sys/module/vmwgfx/sections/.orc_unwind_ip
+/sys/module/vmwgfx/sections/.return_sites
+/sys/module/vmwgfx/sections/.gnu.linkonce.this_module
+/sys/module/vmwgfx/sections/.symtab
+/sys/module/vmwgfx/sections/.rodata
+/sys/module/vmwgfx/sections/.init.text
+/sys/module/vmwgfx/sections/.note.gnu.build-id
+/sys/module/vmwgfx/sections/.text
+/sys/module/vmwgfx/sections/.init.data
+/sys/module/vmwgfx/sections/.call_sites
+/sys/module/vmwgfx/sections/.data
+/sys/module/vmwgfx/sections/.altinstr_replacement
+/sys/module/vmwgfx/sections/.smp_locks
+/sys/module/vmwgfx/sections/.rodata.str1.1
+/sys/module/vmwgfx/sections/.text.unlikely
+/sys/module/vmwgfx/sections/.retpoline_sites
+/sys/module/vmwgfx/sections/.rodata.str1.8
+/sys/module/ac97_bus/notes/.note.Linux
+/sys/module/ac97_bus/notes/.note.gnu.build-id
+/sys/module/ac97_bus/sections/.orc_unwind
+/sys/module/ac97_bus/sections/.note.Linux
+/sys/module/ac97_bus/sections/.strtab
+/sys/module/ac97_bus/sections/.exit.text
+/sys/module/ac97_bus/sections/.exit.data
+/sys/module/ac97_bus/sections/.orc_unwind_ip
+/sys/module/ac97_bus/sections/.return_sites
+/sys/module/ac97_bus/sections/.gnu.linkonce.this_module
+/sys/module/ac97_bus/sections/.symtab
+/sys/module/ac97_bus/sections/.init.text
+/sys/module/ac97_bus/sections/.note.gnu.build-id
+/sys/module/ac97_bus/sections/.text
+/sys/module/ac97_bus/sections/.init.data
+/sys/module/ac97_bus/sections/.call_sites
+/sys/module/ac97_bus/sections/.data
+/sys/module/ac97_bus/sections/.rodata.str1.1
+/sys/module/ac97_bus/sections/.retpoline_sites
+/sys/module/ac97_bus/sections/.export_symbol
+/sys/module/ata_piix/notes/.note.Linux
+/sys/module/ata_piix/notes/.note.gnu.build-id
+/sys/module/ata_piix/sections/.orc_unwind
+/sys/module/ata_piix/sections/.note.Linux
+/sys/module/ata_piix/sections/.static_call_sites
+/sys/module/ata_piix/sections/.strtab
+/sys/module/ata_piix/sections/.exit.text
+/sys/module/ata_piix/sections/.exit.data
+/sys/module/ata_piix/sections/.bss
+/sys/module/ata_piix/sections/.orc_unwind_ip
+/sys/module/ata_piix/sections/.return_sites
+/sys/module/ata_piix/sections/.gnu.linkonce.this_module
+/sys/module/ata_piix/sections/.symtab
+/sys/module/ata_piix/sections/.rodata
+/sys/module/ata_piix/sections/.init.text
+/sys/module/ata_piix/sections/.note.gnu.build-id
+/sys/module/ata_piix/sections/.text
+/sys/module/ata_piix/sections/.init.data
+/sys/module/ata_piix/sections/.call_sites
+/sys/module/ata_piix/sections/.data
+/sys/module/ata_piix/sections/.rodata.str1.1
+/sys/module/ata_piix/sections/.text.unlikely
+/sys/module/ata_piix/sections/.retpoline_sites
+/sys/module/ata_piix/sections/.rodata.str1.8
+/sys/module/mptbase/notes/.note.Linux
+/sys/module/mptbase/notes/.note.gnu.build-id
+/sys/module/mptbase/sections/.orc_unwind
+/sys/module/mptbase/sections/.printk_index
+/sys/module/mptbase/sections/.note.Linux
+/sys/module/mptbase/sections/.static_call_sites
+/sys/module/mptbase/sections/.strtab
+/sys/module/mptbase/sections/.exit.text
+/sys/module/mptbase/sections/.exit.data
+/sys/module/mptbase/sections/.bss
+/sys/module/mptbase/sections/.orc_unwind_ip
+/sys/module/mptbase/sections/.return_sites
+/sys/module/mptbase/sections/.gnu.linkonce.this_module
+/sys/module/mptbase/sections/.symtab
+/sys/module/mptbase/sections/.rodata
+/sys/module/mptbase/sections/.init.text
+/sys/module/mptbase/sections/.note.gnu.build-id
+/sys/module/mptbase/sections/.text
+/sys/module/mptbase/sections/.init.data
+/sys/module/mptbase/sections/.call_sites
+/sys/module/mptbase/sections/.data
+/sys/module/mptbase/sections/.rodata.str1.1
+/sys/module/mptbase/sections/.text.unlikely
+/sys/module/mptbase/sections/.retpoline_sites
+/sys/module/mptbase/sections/.rodata.str1.8
+/sys/module/mptbase/sections/.export_symbol
+/sys/module/snd_seq/notes/.note.Linux
+/sys/module/snd_seq/notes/.note.gnu.build-id
+/sys/module/snd_seq/sections/.altinstructions
+/sys/module/snd_seq/sections/.orc_unwind
+/sys/module/snd_seq/sections/.data.once
+/sys/module/snd_seq/sections/.printk_index
+/sys/module/snd_seq/sections/.note.Linux
+/sys/module/snd_seq/sections/.strtab
+/sys/module/snd_seq/sections/.exit.text
+/sys/module/snd_seq/sections/.exit.data
+/sys/module/snd_seq/sections/.bss
+/sys/module/snd_seq/sections/.orc_unwind_ip
+/sys/module/snd_seq/sections/.return_sites
+/sys/module/snd_seq/sections/.gnu.linkonce.this_module
+/sys/module/snd_seq/sections/.symtab
+/sys/module/snd_seq/sections/.rodata
+/sys/module/snd_seq/sections/.init.text
+/sys/module/snd_seq/sections/.note.gnu.build-id
+/sys/module/snd_seq/sections/.text
+/sys/module/snd_seq/sections/.init.data
+/sys/module/snd_seq/sections/.call_sites
+/sys/module/snd_seq/sections/.data
+/sys/module/snd_seq/sections/.altinstr_replacement
+/sys/module/snd_seq/sections/.smp_locks
+/sys/module/snd_seq/sections/.rodata.str1.1
+/sys/module/snd_seq/sections/.text.unlikely
+/sys/module/snd_seq/sections/.retpoline_sites
+/sys/module/snd_seq/sections/.rodata.str1.8
+/sys/module/snd_seq/sections/.export_symbol
+/sys/module/snd_seq_midi/notes/.note.Linux
+/sys/module/snd_seq_midi/notes/.note.gnu.build-id
+/sys/module/snd_seq_midi/sections/.orc_unwind
+/sys/module/snd_seq_midi/sections/.printk_index
+/sys/module/snd_seq_midi/sections/.note.Linux
+/sys/module/snd_seq_midi/sections/.strtab
+/sys/module/snd_seq_midi/sections/.exit.text
+/sys/module/snd_seq_midi/sections/.exit.data
+/sys/module/snd_seq_midi/sections/.bss
+/sys/module/snd_seq_midi/sections/.orc_unwind_ip
+/sys/module/snd_seq_midi/sections/.return_sites
+/sys/module/snd_seq_midi/sections/.gnu.linkonce.this_module
+/sys/module/snd_seq_midi/sections/.symtab
+/sys/module/snd_seq_midi/sections/.rodata
+/sys/module/snd_seq_midi/sections/.init.text
+/sys/module/snd_seq_midi/sections/.note.gnu.build-id
+/sys/module/snd_seq_midi/sections/.text
+/sys/module/snd_seq_midi/sections/.init.data
+/sys/module/snd_seq_midi/sections/.call_sites
+/sys/module/snd_seq_midi/sections/.data
+/sys/module/snd_seq_midi/sections/.rodata.str1.1
+/sys/module/snd_seq_midi/sections/.text.unlikely
+/sys/module/snd_seq_midi/sections/.retpoline_sites
+/sys/module/snd_seq_midi/sections/.rodata.str1.8
+/sys/module/soundcore/notes/.note.Linux
+/sys/module/soundcore/notes/.note.gnu.build-id
+/sys/module/soundcore/sections/.orc_unwind
+/sys/module/soundcore/sections/.printk_index
+/sys/module/soundcore/sections/.note.Linux
+/sys/module/soundcore/sections/.strtab
+/sys/module/soundcore/sections/.exit.text
+/sys/module/soundcore/sections/.exit.data
+/sys/module/soundcore/sections/.bss
+/sys/module/soundcore/sections/.orc_unwind_ip
+/sys/module/soundcore/sections/.return_sites
+/sys/module/soundcore/sections/.gnu.linkonce.this_module
+/sys/module/soundcore/sections/.symtab
+/sys/module/soundcore/sections/.rodata
+/sys/module/soundcore/sections/.init.text
+/sys/module/soundcore/sections/.note.gnu.build-id
+/sys/module/soundcore/sections/.text
+/sys/module/soundcore/sections/.init.data
+/sys/module/soundcore/sections/.call_sites
+/sys/module/soundcore/sections/.data
+/sys/module/soundcore/sections/.rodata.str1.1
+/sys/module/soundcore/sections/.text.unlikely
+/sys/module/soundcore/sections/.retpoline_sites
+/sys/module/soundcore/sections/.rodata.str1.8
+/sys/module/soundcore/sections/.export_symbol
+/sys/module/snd_seq_device/notes/.note.Linux
+/sys/module/snd_seq_device/notes/.note.gnu.build-id
+/sys/module/snd_seq_device/sections/.orc_unwind
+/sys/module/snd_seq_device/sections/.note.Linux
+/sys/module/snd_seq_device/sections/.strtab
+/sys/module/snd_seq_device/sections/.exit.text
+/sys/module/snd_seq_device/sections/.exit.data
+/sys/module/snd_seq_device/sections/.bss
+/sys/module/snd_seq_device/sections/.orc_unwind_ip
+/sys/module/snd_seq_device/sections/.return_sites
+/sys/module/snd_seq_device/sections/.gnu.linkonce.this_module
+/sys/module/snd_seq_device/sections/.symtab
+/sys/module/snd_seq_device/sections/.rodata
+/sys/module/snd_seq_device/sections/.init.text
+/sys/module/snd_seq_device/sections/.note.gnu.build-id
+/sys/module/snd_seq_device/sections/.text
+/sys/module/snd_seq_device/sections/.init.data
+/sys/module/snd_seq_device/sections/.call_sites
+/sys/module/snd_seq_device/sections/.data
+/sys/module/snd_seq_device/sections/.smp_locks
+/sys/module/snd_seq_device/sections/.rodata.str1.1
+/sys/module/snd_seq_device/sections/.retpoline_sites
+/sys/module/snd_seq_device/sections/.export_symbol
+/sys/module/mptspi/notes/.note.Linux
+/sys/module/mptspi/notes/.note.gnu.build-id
+/sys/module/mptspi/sections/.orc_unwind
+/sys/module/mptspi/sections/.printk_index
+/sys/module/mptspi/sections/.note.Linux
+/sys/module/mptspi/sections/.strtab
+/sys/module/mptspi/sections/.exit.text
+/sys/module/mptspi/sections/.exit.data
+/sys/module/mptspi/sections/.bss
+/sys/module/mptspi/sections/.orc_unwind_ip
+/sys/module/mptspi/sections/.return_sites
+/sys/module/mptspi/sections/.gnu.linkonce.this_module
+/sys/module/mptspi/sections/.symtab
+/sys/module/mptspi/sections/.rodata
+/sys/module/mptspi/sections/.init.text
+/sys/module/mptspi/sections/.note.gnu.build-id
+/sys/module/mptspi/sections/.text
+/sys/module/mptspi/sections/.init.data
+/sys/module/mptspi/sections/.call_sites
+/sys/module/mptspi/sections/.data
+/sys/module/mptspi/sections/.rodata.str1.1
+/sys/module/mptspi/sections/.text.unlikely
+/sys/module/mptspi/sections/.retpoline_sites
+/sys/module/mptspi/sections/.rodata.str1.8
+/sys/module/drm_kms_helper/notes/.note.Linux
+/sys/module/drm_kms_helper/notes/.note.gnu.build-id
+/sys/module/drm_kms_helper/sections/.altinstructions
+/sys/module/drm_kms_helper/sections/.orc_unwind
+/sys/module/drm_kms_helper/sections/.data.once
+/sys/module/drm_kms_helper/sections/.data..read_mostly
+/sys/module/drm_kms_helper/sections/.note.Linux
+/sys/module/drm_kms_helper/sections/.static_call_sites
+/sys/module/drm_kms_helper/sections/.strtab
+/sys/module/drm_kms_helper/sections/.orc_unwind_ip
+/sys/module/drm_kms_helper/sections/.return_sites
+/sys/module/drm_kms_helper/sections/.gnu.linkonce.this_module
+/sys/module/drm_kms_helper/sections/.symtab
+/sys/module/drm_kms_helper/sections/.rodata
+/sys/module/drm_kms_helper/sections/.note.gnu.build-id
+/sys/module/drm_kms_helper/sections/.text
+/sys/module/drm_kms_helper/sections/.call_sites
+/sys/module/drm_kms_helper/sections/.data
+/sys/module/drm_kms_helper/sections/.altinstr_replacement
+/sys/module/drm_kms_helper/sections/.smp_locks
+/sys/module/drm_kms_helper/sections/.rodata.str1.1
+/sys/module/drm_kms_helper/sections/.text.unlikely
+/sys/module/drm_kms_helper/sections/.retpoline_sites
+/sys/module/drm_kms_helper/sections/.rodata.str1.8
+/sys/module/drm_kms_helper/sections/.export_symbol
+/sys/module/vmw_vmci/notes/.note.Linux
+/sys/module/vmw_vmci/notes/.note.gnu.build-id
+/sys/module/vmw_vmci/sections/.orc_unwind
+/sys/module/vmw_vmci/sections/.printk_index
+/sys/module/vmw_vmci/sections/.note.Linux
+/sys/module/vmw_vmci/sections/.static_call_sites
+/sys/module/vmw_vmci/sections/.strtab
+/sys/module/vmw_vmci/sections/.exit.text
+/sys/module/vmw_vmci/sections/.exit.data
+/sys/module/vmw_vmci/sections/.bss
+/sys/module/vmw_vmci/sections/.orc_unwind_ip
+/sys/module/vmw_vmci/sections/.return_sites
+/sys/module/vmw_vmci/sections/.gnu.linkonce.this_module
+/sys/module/vmw_vmci/sections/.symtab
+/sys/module/vmw_vmci/sections/.rodata
+/sys/module/vmw_vmci/sections/.init.text
+/sys/module/vmw_vmci/sections/.note.gnu.build-id
+/sys/module/vmw_vmci/sections/.text
+/sys/module/vmw_vmci/sections/.init.data
+/sys/module/vmw_vmci/sections/.call_sites
+/sys/module/vmw_vmci/sections/.data
+/sys/module/vmw_vmci/sections/.smp_locks
+/sys/module/vmw_vmci/sections/.rodata.str1.1
+/sys/module/vmw_vmci/sections/.text.unlikely
+/sys/module/vmw_vmci/sections/.retpoline_sites
+/sys/module/vmw_vmci/sections/.rodata.str1.8
+/sys/module/vmw_vmci/sections/.export_symbol
+/sys/module/vmw_vsock_virtio_transport_common/notes/.note.Linux
+/sys/module/vmw_vsock_virtio_transport_common/notes/.note.gnu.build-id
+/sys/module/vmw_vsock_virtio_transport_common/sections/.orc_unwind
+/sys/module/vmw_vsock_virtio_transport_common/sections/.data.once
+/sys/module/vmw_vsock_virtio_transport_common/sections/.note.Linux
+/sys/module/vmw_vsock_virtio_transport_common/sections/.static_call_sites
+/sys/module/vmw_vsock_virtio_transport_common/sections/.strtab
+/sys/module/vmw_vsock_virtio_transport_common/sections/.orc_unwind_ip
+/sys/module/vmw_vsock_virtio_transport_common/sections/.static_call.text
+/sys/module/vmw_vsock_virtio_transport_common/sections/.return_sites
+/sys/module/vmw_vsock_virtio_transport_common/sections/.gnu.linkonce.this_module
+/sys/module/vmw_vsock_virtio_transport_common/sections/.symtab
+/sys/module/vmw_vsock_virtio_transport_common/sections/.rodata
+/sys/module/vmw_vsock_virtio_transport_common/sections/.note.gnu.build-id
+/sys/module/vmw_vsock_virtio_transport_common/sections/.text
+/sys/module/vmw_vsock_virtio_transport_common/sections/.init.data
+/sys/module/vmw_vsock_virtio_transport_common/sections/.call_sites
+/sys/module/vmw_vsock_virtio_transport_common/sections/.data
+/sys/module/vmw_vsock_virtio_transport_common/sections/.smp_locks
+/sys/module/vmw_vsock_virtio_transport_common/sections/.rodata.str1.1
+/sys/module/vmw_vsock_virtio_transport_common/sections/.retpoline_sites
+/sys/module/vmw_vsock_virtio_transport_common/sections/.rodata.str1.8
+/sys/module/vmw_vsock_virtio_transport_common/sections/.export_symbol
+/sys/module/vmw_vsock_virtio_transport_common/sections/.ref.data
+/sys/module/cdrom/notes/.note.Linux
+/sys/module/cdrom/notes/.note.gnu.build-id
+/sys/module/cdrom/sections/.orc_unwind
+/sys/module/cdrom/sections/.printk_index
+/sys/module/cdrom/sections/.note.Linux
+/sys/module/cdrom/sections/.strtab
+/sys/module/cdrom/sections/.exit.text
+/sys/module/cdrom/sections/.exit.data
+/sys/module/cdrom/sections/.bss
+/sys/module/cdrom/sections/.orc_unwind_ip
+/sys/module/cdrom/sections/.return_sites
+/sys/module/cdrom/sections/.gnu.linkonce.this_module
+/sys/module/cdrom/sections/.symtab
+/sys/module/cdrom/sections/.rodata
+/sys/module/cdrom/sections/.init.text
+/sys/module/cdrom/sections/.note.gnu.build-id
+/sys/module/cdrom/sections/.text
+/sys/module/cdrom/sections/.init.data
+/sys/module/cdrom/sections/.call_sites
+/sys/module/cdrom/sections/.data
+/sys/module/cdrom/sections/.smp_locks
+/sys/module/cdrom/sections/.rodata.str1.1
+/sys/module/cdrom/sections/.text.unlikely
+/sys/module/cdrom/sections/.retpoline_sites
+/sys/module/cdrom/sections/.rodata.str1.8
+/sys/module/cdrom/sections/.export_symbol
+/sys/module/intel_vsec/notes/.note.Linux
+/sys/module/intel_vsec/notes/.note.gnu.build-id
+/sys/module/intel_vsec/sections/.orc_unwind
+/sys/module/intel_vsec/sections/.note.Linux
+/sys/module/intel_vsec/sections/.static_call_sites
+/sys/module/intel_vsec/sections/.strtab
+/sys/module/intel_vsec/sections/.exit.text
+/sys/module/intel_vsec/sections/.exit.data
+/sys/module/intel_vsec/sections/.orc_unwind_ip
+/sys/module/intel_vsec/sections/.return_sites
+/sys/module/intel_vsec/sections/.gnu.linkonce.this_module
+/sys/module/intel_vsec/sections/.symtab
+/sys/module/intel_vsec/sections/.rodata
+/sys/module/intel_vsec/sections/.init.text
+/sys/module/intel_vsec/sections/.note.gnu.build-id
+/sys/module/intel_vsec/sections/.text
+/sys/module/intel_vsec/sections/.init.data
+/sys/module/intel_vsec/sections/.call_sites
+/sys/module/intel_vsec/sections/.data
+/sys/module/intel_vsec/sections/.rodata.str1.1
+/sys/module/intel_vsec/sections/.text.unlikely
+/sys/module/intel_vsec/sections/.rodata.str1.8
+/sys/module/intel_vsec/sections/.export_symbol
+/sys/module/vsock/notes/.note.Linux
+/sys/module/vsock/notes/.note.gnu.build-id
+/sys/module/vsock/sections/.orc_unwind
+/sys/module/vsock/sections/.data..read_mostly
+/sys/module/vsock/sections/.printk_index
+/sys/module/vsock/sections/.note.Linux
+/sys/module/vsock/sections/.strtab
+/sys/module/vsock/sections/.exit.text
+/sys/module/vsock/sections/.exit.data
+/sys/module/vsock/sections/.bss
+/sys/module/vsock/sections/.orc_unwind_ip
+/sys/module/vsock/sections/.return_sites
+/sys/module/vsock/sections/.gnu.linkonce.this_module
+/sys/module/vsock/sections/.symtab
+/sys/module/vsock/sections/.rodata
+/sys/module/vsock/sections/.init.text
+/sys/module/vsock/sections/.note.gnu.build-id
+/sys/module/vsock/sections/.text
+/sys/module/vsock/sections/.init.data
+/sys/module/vsock/sections/.call_sites
+/sys/module/vsock/sections/.data
+/sys/module/vsock/sections/.smp_locks
+/sys/module/vsock/sections/.rodata.str1.1
+/sys/module/vsock/sections/.text.unlikely
+/sys/module/vsock/sections/.retpoline_sites
+/sys/module/vsock/sections/.rodata.str1.8
+/sys/module/vsock/sections/.export_symbol
+/sys/module/dm_region_hash/notes/.note.Linux
+/sys/module/dm_region_hash/notes/.note.gnu.build-id
+/sys/module/dm_region_hash/sections/.orc_unwind
+/sys/module/dm_region_hash/sections/.printk_index
+/sys/module/dm_region_hash/sections/.note.Linux
+/sys/module/dm_region_hash/sections/.strtab
+/sys/module/dm_region_hash/sections/.orc_unwind_ip
+/sys/module/dm_region_hash/sections/.return_sites
+/sys/module/dm_region_hash/sections/.gnu.linkonce.this_module
+/sys/module/dm_region_hash/sections/.symtab
+/sys/module/dm_region_hash/sections/.rodata
+/sys/module/dm_region_hash/sections/.note.gnu.build-id
+/sys/module/dm_region_hash/sections/.text
+/sys/module/dm_region_hash/sections/.call_sites
+/sys/module/dm_region_hash/sections/.smp_locks
+/sys/module/dm_region_hash/sections/.rodata.str1.1
+/sys/module/dm_region_hash/sections/.text.unlikely
+/sys/module/dm_region_hash/sections/.retpoline_sites
+/sys/module/dm_region_hash/sections/.rodata.str1.8
+/sys/module/dm_region_hash/sections/.export_symbol
+/sys/module/sd_mod/notes/.note.Linux
+/sys/module/sd_mod/notes/.note.gnu.build-id
+/sys/module/sd_mod/sections/.altinstructions
+/sys/module/sd_mod/sections/.orc_unwind
+/sys/module/sd_mod/sections/.printk_index
+/sys/module/sd_mod/sections/.note.Linux
+/sys/module/sd_mod/sections/.static_call_sites
+/sys/module/sd_mod/sections/.strtab
+/sys/module/sd_mod/sections/.exit.text
+/sys/module/sd_mod/sections/.exit.data
+/sys/module/sd_mod/sections/.bss
+/sys/module/sd_mod/sections/.orc_unwind_ip
+/sys/module/sd_mod/sections/.static_call.text
+/sys/module/sd_mod/sections/.return_sites
+/sys/module/sd_mod/sections/.gnu.linkonce.this_module
+/sys/module/sd_mod/sections/.symtab
+/sys/module/sd_mod/sections/.rodata
+/sys/module/sd_mod/sections/.init.text
+/sys/module/sd_mod/sections/.note.gnu.build-id
+/sys/module/sd_mod/sections/.text
+/sys/module/sd_mod/sections/.init.data
+/sys/module/sd_mod/sections/.call_sites
+/sys/module/sd_mod/sections/.data
+/sys/module/sd_mod/sections/.altinstr_replacement
+/sys/module/sd_mod/sections/.smp_locks
+/sys/module/sd_mod/sections/.rodata.str1.1
+/sys/module/sd_mod/sections/.text.unlikely
+/sys/module/sd_mod/sections/.retpoline_sites
+/sys/module/sd_mod/sections/.rodata.str1.8
+/sys/module/sd_mod/sections/.ref.data
+/sys/module/intel_rapl_msr/notes/.note.Linux
+/sys/module/intel_rapl_msr/notes/.note.gnu.build-id
+/sys/module/intel_rapl_msr/sections/.orc_unwind
+/sys/module/intel_rapl_msr/sections/.printk_index
+/sys/module/intel_rapl_msr/sections/.note.Linux
+/sys/module/intel_rapl_msr/sections/.strtab
+/sys/module/intel_rapl_msr/sections/.exit.text
+/sys/module/intel_rapl_msr/sections/.exit.data
+/sys/module/intel_rapl_msr/sections/.bss
+/sys/module/intel_rapl_msr/sections/.orc_unwind_ip
+/sys/module/intel_rapl_msr/sections/.return_sites
+/sys/module/intel_rapl_msr/sections/.gnu.linkonce.this_module
+/sys/module/intel_rapl_msr/sections/.symtab
+/sys/module/intel_rapl_msr/sections/.rodata
+/sys/module/intel_rapl_msr/sections/.init.text
+/sys/module/intel_rapl_msr/sections/.note.gnu.build-id
+/sys/module/intel_rapl_msr/sections/.text
+/sys/module/intel_rapl_msr/sections/.init.data
+/sys/module/intel_rapl_msr/sections/.call_sites
+/sys/module/intel_rapl_msr/sections/.data
+/sys/module/intel_rapl_msr/sections/.smp_locks
+/sys/module/intel_rapl_msr/sections/.rodata.str1.1
+/sys/module/intel_rapl_msr/sections/.text.unlikely
+/sys/module/intel_rapl_msr/sections/.rodata.str1.8
+/sys/module/ata_generic/notes/.note.Linux
+/sys/module/ata_generic/notes/.note.gnu.build-id
+/sys/module/ata_generic/sections/.orc_unwind
+/sys/module/ata_generic/sections/.printk_index
+/sys/module/ata_generic/sections/.note.Linux
+/sys/module/ata_generic/sections/.strtab
+/sys/module/ata_generic/sections/.exit.text
+/sys/module/ata_generic/sections/.exit.data
+/sys/module/ata_generic/sections/.bss
+/sys/module/ata_generic/sections/.orc_unwind_ip
+/sys/module/ata_generic/sections/.return_sites
+/sys/module/ata_generic/sections/.gnu.linkonce.this_module
+/sys/module/ata_generic/sections/.symtab
+/sys/module/ata_generic/sections/.rodata
+/sys/module/ata_generic/sections/.init.text
+/sys/module/ata_generic/sections/.note.gnu.build-id
+/sys/module/ata_generic/sections/.text
+/sys/module/ata_generic/sections/.init.data
+/sys/module/ata_generic/sections/.call_sites
+/sys/module/ata_generic/sections/.data
+/sys/module/ata_generic/sections/.rodata.str1.1
+/sys/module/ata_generic/sections/.text.unlikely
+/sys/module/ata_generic/sections/.rodata.str1.8
+/sys/module/scsi_transport_spi/notes/.note.Linux
+/sys/module/scsi_transport_spi/notes/.note.gnu.build-id
+/sys/module/scsi_transport_spi/sections/.orc_unwind
+/sys/module/scsi_transport_spi/sections/.printk_index
+/sys/module/scsi_transport_spi/sections/.note.Linux
+/sys/module/scsi_transport_spi/sections/.strtab
+/sys/module/scsi_transport_spi/sections/.exit.text
+/sys/module/scsi_transport_spi/sections/.exit.data
+/sys/module/scsi_transport_spi/sections/.orc_unwind_ip
+/sys/module/scsi_transport_spi/sections/.return_sites
+/sys/module/scsi_transport_spi/sections/.gnu.linkonce.this_module
+/sys/module/scsi_transport_spi/sections/.symtab
+/sys/module/scsi_transport_spi/sections/.rodata
+/sys/module/scsi_transport_spi/sections/.init.text
+/sys/module/scsi_transport_spi/sections/.note.gnu.build-id
+/sys/module/scsi_transport_spi/sections/.text
+/sys/module/scsi_transport_spi/sections/.init.data
+/sys/module/scsi_transport_spi/sections/.call_sites
+/sys/module/scsi_transport_spi/sections/.data
+/sys/module/scsi_transport_spi/sections/.rodata.str1.1
+/sys/module/scsi_transport_spi/sections/.text.unlikely
+/sys/module/scsi_transport_spi/sections/.retpoline_sites
+/sys/module/scsi_transport_spi/sections/.rodata.str1.8
+/sys/module/scsi_transport_spi/sections/.export_symbol
+/sys/module/libcrc32c/notes/.note.Linux
+/sys/module/libcrc32c/notes/.note.gnu.build-id
+/sys/module/libcrc32c/sections/.orc_unwind
+/sys/module/libcrc32c/sections/.note.Linux
+/sys/module/libcrc32c/sections/.strtab
+/sys/module/libcrc32c/sections/.exit.text
+/sys/module/libcrc32c/sections/.exit.data
+/sys/module/libcrc32c/sections/.bss
+/sys/module/libcrc32c/sections/.orc_unwind_ip
+/sys/module/libcrc32c/sections/.return_sites
+/sys/module/libcrc32c/sections/.gnu.linkonce.this_module
+/sys/module/libcrc32c/sections/.symtab
+/sys/module/libcrc32c/sections/.init.text
+/sys/module/libcrc32c/sections/.note.gnu.build-id
+/sys/module/libcrc32c/sections/.text
+/sys/module/libcrc32c/sections/.init.data
+/sys/module/libcrc32c/sections/.call_sites
+/sys/module/libcrc32c/sections/.rodata.str1.1
+/sys/module/libcrc32c/sections/.export_symbol
+/sys/module/vmw_balloon/notes/.note.Linux
+/sys/module/vmw_balloon/notes/.note.gnu.build-id
+/sys/module/vmw_balloon/sections/.orc_unwind
+/sys/module/vmw_balloon/sections/.data..read_mostly
+/sys/module/vmw_balloon/sections/.printk_index
+/sys/module/vmw_balloon/sections/.note.Linux
+/sys/module/vmw_balloon/sections/.static_call_sites
+/sys/module/vmw_balloon/sections/.strtab
+/sys/module/vmw_balloon/sections/.exit.text
+/sys/module/vmw_balloon/sections/.exit.data
+/sys/module/vmw_balloon/sections/.bss
+/sys/module/vmw_balloon/sections/.orc_unwind_ip
+/sys/module/vmw_balloon/sections/.return_sites
+/sys/module/vmw_balloon/sections/.gnu.linkonce.this_module
+/sys/module/vmw_balloon/sections/.symtab
+/sys/module/vmw_balloon/sections/.rodata
+/sys/module/vmw_balloon/sections/.init.text
+/sys/module/vmw_balloon/sections/.note.gnu.build-id
+/sys/module/vmw_balloon/sections/.text
+/sys/module/vmw_balloon/sections/.init.data
+/sys/module/vmw_balloon/sections/.call_sites
+/sys/module/vmw_balloon/sections/.data
+/sys/module/vmw_balloon/sections/.smp_locks
+/sys/module/vmw_balloon/sections/.rodata.str1.1
+/sys/module/vmw_balloon/sections/.rodata.str1.8
+/sys/module/intel_uncore_frequency_common/notes/.note.Linux
+/sys/module/intel_uncore_frequency_common/notes/.note.gnu.build-id
+/sys/module/intel_uncore_frequency_common/sections/.orc_unwind
+/sys/module/intel_uncore_frequency_common/sections/.note.Linux
+/sys/module/intel_uncore_frequency_common/sections/.strtab
+/sys/module/intel_uncore_frequency_common/sections/.bss
+/sys/module/intel_uncore_frequency_common/sections/.orc_unwind_ip
+/sys/module/intel_uncore_frequency_common/sections/.return_sites
+/sys/module/intel_uncore_frequency_common/sections/.gnu.linkonce.this_module
+/sys/module/intel_uncore_frequency_common/sections/.symtab
+/sys/module/intel_uncore_frequency_common/sections/.note.gnu.build-id
+/sys/module/intel_uncore_frequency_common/sections/.text
+/sys/module/intel_uncore_frequency_common/sections/.call_sites
+/sys/module/intel_uncore_frequency_common/sections/.data
+/sys/module/intel_uncore_frequency_common/sections/.rodata.str1.1
+/sys/module/intel_uncore_frequency_common/sections/.retpoline_sites
+/sys/module/intel_uncore_frequency_common/sections/.export_symbol
+/sys/module/dm_log/notes/.note.Linux
+/sys/module/dm_log/notes/.note.gnu.build-id
+/sys/module/dm_log/sections/.orc_unwind
+/sys/module/dm_log/sections/.printk_index
+/sys/module/dm_log/sections/.note.Linux
+/sys/module/dm_log/sections/.strtab
+/sys/module/dm_log/sections/.exit.text
+/sys/module/dm_log/sections/.exit.data
+/sys/module/dm_log/sections/.bss
+/sys/module/dm_log/sections/.orc_unwind_ip
+/sys/module/dm_log/sections/.return_sites
+/sys/module/dm_log/sections/.gnu.linkonce.this_module
+/sys/module/dm_log/sections/.symtab
+/sys/module/dm_log/sections/.rodata
+/sys/module/dm_log/sections/.init.text
+/sys/module/dm_log/sections/.note.gnu.build-id
+/sys/module/dm_log/sections/.text
+/sys/module/dm_log/sections/.init.data
+/sys/module/dm_log/sections/.call_sites
+/sys/module/dm_log/sections/.data
+/sys/module/dm_log/sections/.rodata.str1.1
+/sys/module/dm_log/sections/.text.unlikely
+/sys/module/dm_log/sections/.retpoline_sites
+/sys/module/dm_log/sections/.rodata.str1.8
+/sys/module/dm_log/sections/.export_symbol
+/sys/module/serio_raw/notes/.note.Linux
+/sys/module/serio_raw/notes/.note.gnu.build-id
+/sys/module/serio_raw/sections/.orc_unwind
+/sys/module/serio_raw/sections/.note.Linux
+/sys/module/serio_raw/sections/.static_call_sites
+/sys/module/serio_raw/sections/.strtab
+/sys/module/serio_raw/sections/.exit.text
+/sys/module/serio_raw/sections/.exit.data
+/sys/module/serio_raw/sections/.orc_unwind_ip
+/sys/module/serio_raw/sections/.return_sites
+/sys/module/serio_raw/sections/.gnu.linkonce.this_module
+/sys/module/serio_raw/sections/.symtab
+/sys/module/serio_raw/sections/.rodata
+/sys/module/serio_raw/sections/.init.text
+/sys/module/serio_raw/sections/.note.gnu.build-id
+/sys/module/serio_raw/sections/.text
+/sys/module/serio_raw/sections/.init.data
+/sys/module/serio_raw/sections/.call_sites
+/sys/module/serio_raw/sections/.data
+/sys/module/serio_raw/sections/.smp_locks
+/sys/module/serio_raw/sections/.rodata.str1.1
+/sys/module/serio_raw/sections/.text.unlikely
+/sys/module/serio_raw/sections/.retpoline_sites
+/sys/module/serio_raw/sections/.rodata.str1.8
+/sys/module/snd_timer/notes/.note.Linux
+/sys/module/snd_timer/notes/.note.gnu.build-id
+/sys/module/snd_timer/sections/.orc_unwind
+/sys/module/snd_timer/sections/.data.once
+/sys/module/snd_timer/sections/.printk_index
+/sys/module/snd_timer/sections/.note.Linux
+/sys/module/snd_timer/sections/.strtab
+/sys/module/snd_timer/sections/.exit.text
+/sys/module/snd_timer/sections/.exit.data
+/sys/module/snd_timer/sections/.bss
+/sys/module/snd_timer/sections/.orc_unwind_ip
+/sys/module/snd_timer/sections/.return_sites
+/sys/module/snd_timer/sections/.gnu.linkonce.this_module
+/sys/module/snd_timer/sections/.symtab
+/sys/module/snd_timer/sections/.rodata
+/sys/module/snd_timer/sections/.init.text
+/sys/module/snd_timer/sections/.note.gnu.build-id
+/sys/module/snd_timer/sections/.text
+/sys/module/snd_timer/sections/.init.data
+/sys/module/snd_timer/sections/.call_sites
+/sys/module/snd_timer/sections/.data
+/sys/module/snd_timer/sections/.rodata.str1.1
+/sys/module/snd_timer/sections/.text.unlikely
+/sys/module/snd_timer/sections/.retpoline_sites
+/sys/module/snd_timer/sections/.rodata.str1.8
+/sys/module/snd_timer/sections/.export_symbol
+/sys/module/snd_hrtimer/notes/.note.Linux
+/sys/module/snd_hrtimer/notes/.note.gnu.build-id
+/sys/module/snd_hrtimer/sections/.orc_unwind
+/sys/module/snd_hrtimer/sections/.note.Linux
+/sys/module/snd_hrtimer/sections/.strtab
+/sys/module/snd_hrtimer/sections/.exit.text
+/sys/module/snd_hrtimer/sections/.exit.data
+/sys/module/snd_hrtimer/sections/.bss
+/sys/module/snd_hrtimer/sections/.orc_unwind_ip
+/sys/module/snd_hrtimer/sections/.return_sites
+/sys/module/snd_hrtimer/sections/.gnu.linkonce.this_module
+/sys/module/snd_hrtimer/sections/.symtab
+/sys/module/snd_hrtimer/sections/.init.text
+/sys/module/snd_hrtimer/sections/.note.gnu.build-id
+/sys/module/snd_hrtimer/sections/.text
+/sys/module/snd_hrtimer/sections/.init.data
+/sys/module/snd_hrtimer/sections/.call_sites
+/sys/module/snd_hrtimer/sections/.rodata.str1.1
+/sys/module/snd_hrtimer/sections/.retpoline_sites
+/sys/module/ghash_clmulni_intel/notes/.note.Linux
+/sys/module/ghash_clmulni_intel/notes/.note.gnu.build-id
+/sys/module/ghash_clmulni_intel/sections/.orc_unwind
+/sys/module/ghash_clmulni_intel/sections/.note.Linux
+/sys/module/ghash_clmulni_intel/sections/.strtab
+/sys/module/ghash_clmulni_intel/sections/.exit.text
+/sys/module/ghash_clmulni_intel/sections/.exit.data
+/sys/module/ghash_clmulni_intel/sections/.orc_unwind_ip
+/sys/module/ghash_clmulni_intel/sections/.return_sites
+/sys/module/ghash_clmulni_intel/sections/.gnu.linkonce.this_module
+/sys/module/ghash_clmulni_intel/sections/.symtab
+/sys/module/ghash_clmulni_intel/sections/.rodata
+/sys/module/ghash_clmulni_intel/sections/.init.text
+/sys/module/ghash_clmulni_intel/sections/.note.gnu.build-id
+/sys/module/ghash_clmulni_intel/sections/.text
+/sys/module/ghash_clmulni_intel/sections/.rodata.cst16.bswap_mask
+/sys/module/ghash_clmulni_intel/sections/.init.data
+/sys/module/ghash_clmulni_intel/sections/.call_sites
+/sys/module/ghash_clmulni_intel/sections/.data
+/sys/module/ghash_clmulni_intel/sections/.rodata.str1.1
+/sys/module/ghash_clmulni_intel/sections/.retpoline_sites
+/sys/module/vsock_loopback/notes/.note.Linux
+/sys/module/vsock_loopback/notes/.note.gnu.build-id
+/sys/module/vsock_loopback/sections/.orc_unwind
+/sys/module/vsock_loopback/sections/.note.Linux
+/sys/module/vsock_loopback/sections/.strtab
+/sys/module/vsock_loopback/sections/.exit.text
+/sys/module/vsock_loopback/sections/.exit.data
+/sys/module/vsock_loopback/sections/.bss
+/sys/module/vsock_loopback/sections/.orc_unwind_ip
+/sys/module/vsock_loopback/sections/.return_sites
+/sys/module/vsock_loopback/sections/.gnu.linkonce.this_module
+/sys/module/vsock_loopback/sections/.symtab
+/sys/module/vsock_loopback/sections/.init.text
+/sys/module/vsock_loopback/sections/.note.gnu.build-id
+/sys/module/vsock_loopback/sections/.text
+/sys/module/vsock_loopback/sections/.init.data
+/sys/module/vsock_loopback/sections/.call_sites
+/sys/module/vsock_loopback/sections/.data
+/sys/module/vsock_loopback/sections/.rodata.str1.1
+/sys/module/rfkill/notes/.note.Linux
+/sys/module/rfkill/notes/.note.gnu.build-id
+/sys/module/rfkill/sections/.orc_unwind
+/sys/module/rfkill/sections/.printk_index
+/sys/module/rfkill/sections/.note.Linux
+/sys/module/rfkill/sections/.static_call_sites
+/sys/module/rfkill/sections/.strtab
+/sys/module/rfkill/sections/.exit.text
+/sys/module/rfkill/sections/.exit.data
+/sys/module/rfkill/sections/.bss
+/sys/module/rfkill/sections/.orc_unwind_ip
+/sys/module/rfkill/sections/.return_sites
+/sys/module/rfkill/sections/.gnu.linkonce.this_module
+/sys/module/rfkill/sections/.symtab
+/sys/module/rfkill/sections/.rodata
+/sys/module/rfkill/sections/.init.text
+/sys/module/rfkill/sections/.note.gnu.build-id
+/sys/module/rfkill/sections/.text
+/sys/module/rfkill/sections/.init.data
+/sys/module/rfkill/sections/.call_sites
+/sys/module/rfkill/sections/.data
+/sys/module/rfkill/sections/.smp_locks
+/sys/module/rfkill/sections/.rodata.str1.1
+/sys/module/rfkill/sections/.text.unlikely
+/sys/module/rfkill/sections/.retpoline_sites
+/sys/module/rfkill/sections/.rodata.str1.8
+/sys/module/rfkill/sections/.export_symbol
+/sys/module/joydev/notes/.note.Linux
+/sys/module/joydev/notes/.note.gnu.build-id
+/sys/module/joydev/sections/.orc_unwind
+/sys/module/joydev/sections/.printk_index
+/sys/module/joydev/sections/.note.Linux
+/sys/module/joydev/sections/.static_call_sites
+/sys/module/joydev/sections/.strtab
+/sys/module/joydev/sections/.exit.text
+/sys/module/joydev/sections/.exit.data
+/sys/module/joydev/sections/.orc_unwind_ip
+/sys/module/joydev/sections/.return_sites
+/sys/module/joydev/sections/.gnu.linkonce.this_module
+/sys/module/joydev/sections/.symtab
+/sys/module/joydev/sections/.rodata
+/sys/module/joydev/sections/.init.text
+/sys/module/joydev/sections/.note.gnu.build-id
+/sys/module/joydev/sections/.text
+/sys/module/joydev/sections/.init.data
+/sys/module/joydev/sections/.call_sites
+/sys/module/joydev/sections/.data
+/sys/module/joydev/sections/.rodata.str1.1
+/sys/module/joydev/sections/.text.unlikely
+/sys/module/joydev/sections/.retpoline_sites
+/sys/module/joydev/sections/.rodata.str1.8
+/sys/module/snd_ac97_codec/notes/.note.Linux
+/sys/module/snd_ac97_codec/notes/.note.gnu.build-id
+/sys/module/snd_ac97_codec/sections/.orc_unwind
+/sys/module/snd_ac97_codec/sections/.printk_index
+/sys/module/snd_ac97_codec/sections/.note.Linux
+/sys/module/snd_ac97_codec/sections/.strtab
+/sys/module/snd_ac97_codec/sections/.bss
+/sys/module/snd_ac97_codec/sections/.orc_unwind_ip
+/sys/module/snd_ac97_codec/sections/.return_sites
+/sys/module/snd_ac97_codec/sections/.gnu.linkonce.this_module
+/sys/module/snd_ac97_codec/sections/.symtab
+/sys/module/snd_ac97_codec/sections/.rodata
+/sys/module/snd_ac97_codec/sections/.note.gnu.build-id
+/sys/module/snd_ac97_codec/sections/.text
+/sys/module/snd_ac97_codec/sections/.call_sites
+/sys/module/snd_ac97_codec/sections/.data
+/sys/module/snd_ac97_codec/sections/.smp_locks
+/sys/module/snd_ac97_codec/sections/.rodata.str1.1
+/sys/module/snd_ac97_codec/sections/.text.unlikely
+/sys/module/snd_ac97_codec/sections/.retpoline_sites
+/sys/module/snd_ac97_codec/sections/.rodata.str1.8
+/sys/module/snd_ac97_codec/sections/.export_symbol
+/sys/module/t10_pi/notes/.note.Linux
+/sys/module/t10_pi/notes/.note.gnu.build-id
+/sys/module/t10_pi/sections/.orc_unwind
+/sys/module/t10_pi/sections/.printk_index
+/sys/module/t10_pi/sections/.note.Linux
+/sys/module/t10_pi/sections/.strtab
+/sys/module/t10_pi/sections/.orc_unwind_ip
+/sys/module/t10_pi/sections/.return_sites
+/sys/module/t10_pi/sections/.gnu.linkonce.this_module
+/sys/module/t10_pi/sections/.symtab
+/sys/module/t10_pi/sections/.rodata
+/sys/module/t10_pi/sections/.note.gnu.build-id
+/sys/module/t10_pi/sections/.text
+/sys/module/t10_pi/sections/.call_sites
+/sys/module/t10_pi/sections/.data
+/sys/module/t10_pi/sections/.rodata.str1.1
+/sys/module/t10_pi/sections/.text.unlikely
+/sys/module/t10_pi/sections/.retpoline_sites
+/sys/module/t10_pi/sections/.rodata.str1.8
+/sys/module/t10_pi/sections/.export_symbol
+/sys/module/intel_pmc_core/notes/.note.Linux
+/sys/module/intel_pmc_core/notes/.note.gnu.build-id
+/sys/module/intel_pmc_core/sections/.altinstructions
+/sys/module/intel_pmc_core/sections/.orc_unwind
+/sys/module/intel_pmc_core/sections/.data..read_mostly
+/sys/module/intel_pmc_core/sections/.printk_index
+/sys/module/intel_pmc_core/sections/.note.Linux
+/sys/module/intel_pmc_core/sections/.strtab
+/sys/module/intel_pmc_core/sections/.exit.text
+/sys/module/intel_pmc_core/sections/.exit.data
+/sys/module/intel_pmc_core/sections/.bss
+/sys/module/intel_pmc_core/sections/.orc_unwind_ip
+/sys/module/intel_pmc_core/sections/.return_sites
+/sys/module/intel_pmc_core/sections/.gnu.linkonce.this_module
+/sys/module/intel_pmc_core/sections/.symtab
+/sys/module/intel_pmc_core/sections/.rodata
+/sys/module/intel_pmc_core/sections/.init.text
+/sys/module/intel_pmc_core/sections/.note.gnu.build-id
+/sys/module/intel_pmc_core/sections/.text
+/sys/module/intel_pmc_core/sections/.init.data
+/sys/module/intel_pmc_core/sections/.call_sites
+/sys/module/intel_pmc_core/sections/.data
+/sys/module/intel_pmc_core/sections/.altinstr_replacement
+/sys/module/intel_pmc_core/sections/.rodata.str1.1
+/sys/module/intel_pmc_core/sections/.text.unlikely
+/sys/module/intel_pmc_core/sections/.retpoline_sites
+/sys/module/intel_pmc_core/sections/.rodata.str1.8
+/sys/module/snd_seq_midi_event/notes/.note.Linux
+/sys/module/snd_seq_midi_event/notes/.note.gnu.build-id
+/sys/module/snd_seq_midi_event/sections/.orc_unwind
+/sys/module/snd_seq_midi_event/sections/.note.Linux
+/sys/module/snd_seq_midi_event/sections/.strtab
+/sys/module/snd_seq_midi_event/sections/.orc_unwind_ip
+/sys/module/snd_seq_midi_event/sections/.return_sites
+/sys/module/snd_seq_midi_event/sections/.gnu.linkonce.this_module
+/sys/module/snd_seq_midi_event/sections/.symtab
+/sys/module/snd_seq_midi_event/sections/.rodata
+/sys/module/snd_seq_midi_event/sections/.note.gnu.build-id
+/sys/module/snd_seq_midi_event/sections/.text
+/sys/module/snd_seq_midi_event/sections/.call_sites
+/sys/module/snd_seq_midi_event/sections/.rodata.str1.1
+/sys/module/snd_seq_midi_event/sections/.text.unlikely
+/sys/module/snd_seq_midi_event/sections/.retpoline_sites
+/sys/module/snd_seq_midi_event/sections/.export_symbol
+/sys/module/fuse/notes/.note.Linux
+/sys/module/fuse/notes/.note.gnu.build-id
+/sys/module/fuse/sections/.altinstructions
+/sys/module/fuse/sections/.orc_unwind
+/sys/module/fuse/sections/.printk_index
+/sys/module/fuse/sections/.note.Linux
+/sys/module/fuse/sections/.static_call_sites
+/sys/module/fuse/sections/.strtab
+/sys/module/fuse/sections/.exit.text
+/sys/module/fuse/sections/.exit.data
+/sys/module/fuse/sections/.bss
+/sys/module/fuse/sections/.orc_unwind_ip
+/sys/module/fuse/sections/.return_sites
+/sys/module/fuse/sections/.gnu.linkonce.this_module
+/sys/module/fuse/sections/.symtab
+/sys/module/fuse/sections/.rodata
+/sys/module/fuse/sections/.init.text
+/sys/module/fuse/sections/.note.gnu.build-id
+/sys/module/fuse/sections/.text
+/sys/module/fuse/sections/.init.data
+/sys/module/fuse/sections/.call_sites
+/sys/module/fuse/sections/.data
+/sys/module/fuse/sections/.altinstr_replacement
+/sys/module/fuse/sections/.smp_locks
+/sys/module/fuse/sections/.rodata.str1.1
+/sys/module/fuse/sections/.text.unlikely
+/sys/module/fuse/sections/.retpoline_sites
+/sys/module/fuse/sections/.rodata.str1.8
+/sys/module/fuse/sections/.export_symbol
+/sys/module/vmxnet3/notes/.note.Linux
+/sys/module/vmxnet3/notes/.note.gnu.build-id
+/sys/module/vmxnet3/sections/.orc_unwind
+/sys/module/vmxnet3/sections/.data.once
+/sys/module/vmxnet3/sections/.printk_index
+/sys/module/vmxnet3/sections/.note.Linux
+/sys/module/vmxnet3/sections/.static_call_sites
+/sys/module/vmxnet3/sections/.strtab
+/sys/module/vmxnet3/sections/.exit.data
+/sys/module/vmxnet3/sections/.orc_unwind_ip
+/sys/module/vmxnet3/sections/.return_sites
+/sys/module/vmxnet3/sections/.gnu.linkonce.this_module
+/sys/module/vmxnet3/sections/.symtab
+/sys/module/vmxnet3/sections/.rodata
+/sys/module/vmxnet3/sections/.init.text
+/sys/module/vmxnet3/sections/.note.gnu.build-id
+/sys/module/vmxnet3/sections/.text
+/sys/module/vmxnet3/sections/.init.data
+/sys/module/vmxnet3/sections/.call_sites
+/sys/module/vmxnet3/sections/.data
+/sys/module/vmxnet3/sections/.smp_locks
+/sys/module/vmxnet3/sections/.rodata.str1.1
+/sys/module/vmxnet3/sections/.text.unlikely
+/sys/module/vmxnet3/sections/.rodata.str1.8
+/sys/module/pmt_telemetry/notes/.note.Linux
+/sys/module/pmt_telemetry/notes/.note.gnu.build-id
+/sys/module/pmt_telemetry/sections/.orc_unwind
+/sys/module/pmt_telemetry/sections/.note.Linux
+/sys/module/pmt_telemetry/sections/.strtab
+/sys/module/pmt_telemetry/sections/.exit.text
+/sys/module/pmt_telemetry/sections/.exit.data
+/sys/module/pmt_telemetry/sections/.orc_unwind_ip
+/sys/module/pmt_telemetry/sections/.return_sites
+/sys/module/pmt_telemetry/sections/.gnu.linkonce.this_module
+/sys/module/pmt_telemetry/sections/.symtab
+/sys/module/pmt_telemetry/sections/.rodata
+/sys/module/pmt_telemetry/sections/.init.text
+/sys/module/pmt_telemetry/sections/.note.gnu.build-id
+/sys/module/pmt_telemetry/sections/.text
+/sys/module/pmt_telemetry/sections/.init.data
+/sys/module/pmt_telemetry/sections/.call_sites
+/sys/module/pmt_telemetry/sections/.data
+/sys/module/pmt_telemetry/sections/.smp_locks
+/sys/module/pmt_telemetry/sections/.rodata.str1.1
+/sys/module/pmt_telemetry/sections/.export_symbol
+/sys/module/xfs/notes/.note.Linux
+/sys/module/xfs/notes/.note.gnu.build-id
+/sys/module/xfs/sections/.altinstructions
+/sys/module/xfs/sections/.orc_unwind
+/sys/module/xfs/sections/.data.once
+/sys/module/xfs/sections/.printk_index
+/sys/module/xfs/sections/.note.Linux
+/sys/module/xfs/sections/.static_call_sites
+/sys/module/xfs/sections/.strtab
+/sys/module/xfs/sections/.exit.text
+/sys/module/xfs/sections/.exit.data
+/sys/module/xfs/sections/.bss
+/sys/module/xfs/sections/.orc_unwind_ip
+/sys/module/xfs/sections/.static_call.text
+/sys/module/xfs/sections/.return_sites
+/sys/module/xfs/sections/.gnu.linkonce.this_module
+/sys/module/xfs/sections/.symtab
+/sys/module/xfs/sections/.rodata
+/sys/module/xfs/sections/.init.text
+/sys/module/xfs/sections/.note.gnu.build-id
+/sys/module/xfs/sections/.text
+/sys/module/xfs/sections/.init.data
+/sys/module/xfs/sections/.call_sites
+/sys/module/xfs/sections/.data
+/sys/module/xfs/sections/.altinstr_replacement
+/sys/module/xfs/sections/.smp_locks
+/sys/module/xfs/sections/.rodata.str1.1
+/sys/module/xfs/sections/.text.unlikely
+/sys/module/xfs/sections/.retpoline_sites
+/sys/module/xfs/sections/.rodata.str1.8
+/sys/module/xfs/sections/.ref.data
+/sys/module/binfmt_misc/notes/.note.Linux
+/sys/module/binfmt_misc/notes/.note.gnu.build-id
+/sys/module/binfmt_misc/sections/.orc_unwind
+/sys/module/binfmt_misc/sections/.printk_index
+/sys/module/binfmt_misc/sections/.note.Linux
+/sys/module/binfmt_misc/sections/.strtab
+/sys/module/binfmt_misc/sections/.exit.text
+/sys/module/binfmt_misc/sections/.exit.data
+/sys/module/binfmt_misc/sections/.bss
+/sys/module/binfmt_misc/sections/.orc_unwind_ip
+/sys/module/binfmt_misc/sections/.return_sites
+/sys/module/binfmt_misc/sections/.gnu.linkonce.this_module
+/sys/module/binfmt_misc/sections/.symtab
+/sys/module/binfmt_misc/sections/.rodata
+/sys/module/binfmt_misc/sections/.init.text
+/sys/module/binfmt_misc/sections/.note.gnu.build-id
+/sys/module/binfmt_misc/sections/.text
+/sys/module/binfmt_misc/sections/.init.data
+/sys/module/binfmt_misc/sections/.call_sites
+/sys/module/binfmt_misc/sections/.data
+/sys/module/binfmt_misc/sections/.smp_locks
+/sys/module/binfmt_misc/sections/.rodata.str1.1
+/sys/module/binfmt_misc/sections/.text.unlikely
+/sys/module/binfmt_misc/sections/.rodata.str1.8
+/sys/module/drm_ttm_helper/notes/.note.Linux
+/sys/module/drm_ttm_helper/notes/.note.gnu.build-id
+/sys/module/drm_ttm_helper/sections/.orc_unwind
+/sys/module/drm_ttm_helper/sections/.note.Linux
+/sys/module/drm_ttm_helper/sections/.strtab
+/sys/module/drm_ttm_helper/sections/.orc_unwind_ip
+/sys/module/drm_ttm_helper/sections/.return_sites
+/sys/module/drm_ttm_helper/sections/.gnu.linkonce.this_module
+/sys/module/drm_ttm_helper/sections/.symtab
+/sys/module/drm_ttm_helper/sections/.rodata
+/sys/module/drm_ttm_helper/sections/.note.gnu.build-id
+/sys/module/drm_ttm_helper/sections/.text
+/sys/module/drm_ttm_helper/sections/.call_sites
+/sys/module/drm_ttm_helper/sections/.smp_locks
+/sys/module/drm_ttm_helper/sections/.rodata.str1.1
+/sys/module/drm_ttm_helper/sections/.export_symbol
+/sys/module/mptscsih/notes/.note.Linux
+/sys/module/mptscsih/notes/.note.gnu.build-id
+/sys/module/mptscsih/sections/.orc_unwind
+/sys/module/mptscsih/sections/.printk_index
+/sys/module/mptscsih/sections/.note.Linux
+/sys/module/mptscsih/sections/.strtab
+/sys/module/mptscsih/sections/.orc_unwind_ip
+/sys/module/mptscsih/sections/.return_sites
+/sys/module/mptscsih/sections/.gnu.linkonce.this_module
+/sys/module/mptscsih/sections/.symtab
+/sys/module/mptscsih/sections/.rodata
+/sys/module/mptscsih/sections/.note.gnu.build-id
+/sys/module/mptscsih/sections/.text
+/sys/module/mptscsih/sections/.call_sites
+/sys/module/mptscsih/sections/.data
+/sys/module/mptscsih/sections/.rodata.str1.1
+/sys/module/mptscsih/sections/.text.unlikely
+/sys/module/mptscsih/sections/.retpoline_sites
+/sys/module/mptscsih/sections/.rodata.str1.8
+/sys/module/mptscsih/sections/.export_symbol
+/sys/module/qrtr/notes/.note.Linux
+/sys/module/qrtr/notes/.note.gnu.build-id
+/sys/module/qrtr/sections/.orc_unwind
+/sys/module/qrtr/sections/.printk_index
+/sys/module/qrtr/sections/.note.Linux
+/sys/module/qrtr/sections/.static_call_sites
+/sys/module/qrtr/sections/.strtab
+/sys/module/qrtr/sections/.exit.text
+/sys/module/qrtr/sections/.exit.data
+/sys/module/qrtr/sections/.bss
+/sys/module/qrtr/sections/.orc_unwind_ip
+/sys/module/qrtr/sections/.static_call.text
+/sys/module/qrtr/sections/.return_sites
+/sys/module/qrtr/sections/.gnu.linkonce.this_module
+/sys/module/qrtr/sections/.symtab
+/sys/module/qrtr/sections/.rodata
+/sys/module/qrtr/sections/.init.text
+/sys/module/qrtr/sections/.note.gnu.build-id
+/sys/module/qrtr/sections/.text
+/sys/module/qrtr/sections/.init.data
+/sys/module/qrtr/sections/.call_sites
+/sys/module/qrtr/sections/.data
+/sys/module/qrtr/sections/.smp_locks
+/sys/module/qrtr/sections/.rodata.str1.1
+/sys/module/qrtr/sections/.text.unlikely
+/sys/module/qrtr/sections/.retpoline_sites
+/sys/module/qrtr/sections/.rodata.str1.8
+/sys/module/qrtr/sections/.export_symbol
+/sys/module/qrtr/sections/.ref.data
+/sys/module/crct10dif_pclmul/notes/.note.Linux
+/sys/module/crct10dif_pclmul/notes/.note.gnu.build-id
+/sys/module/crct10dif_pclmul/sections/.orc_unwind
+/sys/module/crct10dif_pclmul/sections/.note.Linux
+/sys/module/crct10dif_pclmul/sections/.strtab
+/sys/module/crct10dif_pclmul/sections/.exit.text
+/sys/module/crct10dif_pclmul/sections/.rodata.cst16.mask1
+/sys/module/crct10dif_pclmul/sections/.exit.data
+/sys/module/crct10dif_pclmul/sections/.orc_unwind_ip
+/sys/module/crct10dif_pclmul/sections/.return_sites
+/sys/module/crct10dif_pclmul/sections/.gnu.linkonce.this_module
+/sys/module/crct10dif_pclmul/sections/.symtab
+/sys/module/crct10dif_pclmul/sections/.rodata
+/sys/module/crct10dif_pclmul/sections/.init.text
+/sys/module/crct10dif_pclmul/sections/.note.gnu.build-id
+/sys/module/crct10dif_pclmul/sections/.text
+/sys/module/crct10dif_pclmul/sections/.rodata.cst16.bswap_mask
+/sys/module/crct10dif_pclmul/sections/.rodata.cst32.byteshift_table
+/sys/module/crct10dif_pclmul/sections/.init.data
+/sys/module/crct10dif_pclmul/sections/.call_sites
+/sys/module/crct10dif_pclmul/sections/.data
+/sys/module/crct10dif_pclmul/sections/.rodata.cst16.mask2
+/sys/module/snd_pcm/notes/.note.Linux
+/sys/module/snd_pcm/notes/.note.gnu.build-id
+/sys/module/snd_pcm/sections/.altinstructions
+/sys/module/snd_pcm/sections/.orc_unwind
+/sys/module/snd_pcm/sections/.printk_index
+/sys/module/snd_pcm/sections/.note.Linux
+/sys/module/snd_pcm/sections/.strtab
+/sys/module/snd_pcm/sections/.exit.text
+/sys/module/snd_pcm/sections/.exit.data
+/sys/module/snd_pcm/sections/.bss
+/sys/module/snd_pcm/sections/.orc_unwind_ip
+/sys/module/snd_pcm/sections/.return_sites
+/sys/module/snd_pcm/sections/.gnu.linkonce.this_module
+/sys/module/snd_pcm/sections/.symtab
+/sys/module/snd_pcm/sections/.rodata
+/sys/module/snd_pcm/sections/.init.text
+/sys/module/snd_pcm/sections/.note.gnu.build-id
+/sys/module/snd_pcm/sections/.text
+/sys/module/snd_pcm/sections/.init.data
+/sys/module/snd_pcm/sections/.call_sites
+/sys/module/snd_pcm/sections/.data
+/sys/module/snd_pcm/sections/.altinstr_replacement
+/sys/module/snd_pcm/sections/.smp_locks
+/sys/module/snd_pcm/sections/.rodata.str1.1
+/sys/module/snd_pcm/sections/.text.unlikely
+/sys/module/snd_pcm/sections/.retpoline_sites
+/sys/module/snd_pcm/sections/.altinstr_aux
+/sys/module/snd_pcm/sections/.rodata.str1.8
+/sys/module/snd_pcm/sections/.export_symbol
+/sys/module/rapl/notes/.note.Linux
+/sys/module/rapl/notes/.note.gnu.build-id
+/sys/module/rapl/sections/.altinstructions
+/sys/module/rapl/sections/.orc_unwind
+/sys/module/rapl/sections/.data..read_mostly
+/sys/module/rapl/sections/.printk_index
+/sys/module/rapl/sections/.note.Linux
+/sys/module/rapl/sections/.strtab
+/sys/module/rapl/sections/.exit.text
+/sys/module/rapl/sections/.exit.data
+/sys/module/rapl/sections/.bss
+/sys/module/rapl/sections/.orc_unwind_ip
+/sys/module/rapl/sections/.init.rodata
+/sys/module/rapl/sections/.return_sites
+/sys/module/rapl/sections/.gnu.linkonce.this_module
+/sys/module/rapl/sections/.symtab
+/sys/module/rapl/sections/.rodata
+/sys/module/rapl/sections/.init.text
+/sys/module/rapl/sections/.note.gnu.build-id
+/sys/module/rapl/sections/.text
+/sys/module/rapl/sections/.init.data
+/sys/module/rapl/sections/.call_sites
+/sys/module/rapl/sections/.data
+/sys/module/rapl/sections/.altinstr_replacement
+/sys/module/rapl/sections/.smp_locks
+/sys/module/rapl/sections/.rodata.str1.1
+/sys/module/rapl/sections/.text.unlikely
+/sys/module/rapl/sections/.retpoline_sites
+/sys/module/rapl/sections/.rodata.str1.8
+/sys/module/snd/notes/.note.Linux
+/sys/module/snd/notes/.note.gnu.build-id
+/sys/module/snd/sections/.orc_unwind
+/sys/module/snd/sections/.data.once
+/sys/module/snd/sections/.printk_index
+/sys/module/snd/sections/.note.Linux
+/sys/module/snd/sections/.static_call_sites
+/sys/module/snd/sections/.strtab
+/sys/module/snd/sections/.exit.text
+/sys/module/snd/sections/.exit.data
+/sys/module/snd/sections/.bss
+/sys/module/snd/sections/.orc_unwind_ip
+/sys/module/snd/sections/.return_sites
+/sys/module/snd/sections/.gnu.linkonce.this_module
+/sys/module/snd/sections/.symtab
+/sys/module/snd/sections/.rodata
+/sys/module/snd/sections/.init.text
+/sys/module/snd/sections/.note.gnu.build-id
+/sys/module/snd/sections/.text
+/sys/module/snd/sections/.init.data
+/sys/module/snd/sections/.call_sites
+/sys/module/snd/sections/.data
+/sys/module/snd/sections/.smp_locks
+/sys/module/snd/sections/.rodata.str1.1
+/sys/module/snd/sections/.text.unlikely
+/sys/module/snd/sections/.retpoline_sites
+/sys/module/snd/sections/.rodata.str1.8
+/sys/module/snd/sections/.export_symbol
+/sys/module/dm_mod/notes/.note.Linux
+/sys/module/dm_mod/notes/.note.gnu.build-id
+/sys/module/dm_mod/sections/.altinstructions
+/sys/module/dm_mod/sections/.orc_unwind
+/sys/module/dm_mod/sections/.data.once
+/sys/module/dm_mod/sections/.printk_index
+/sys/module/dm_mod/sections/.note.Linux
+/sys/module/dm_mod/sections/.static_call_sites
+/sys/module/dm_mod/sections/.strtab
+/sys/module/dm_mod/sections/.exit.text
+/sys/module/dm_mod/sections/.exit.data
+/sys/module/dm_mod/sections/.bss
+/sys/module/dm_mod/sections/.orc_unwind_ip
+/sys/module/dm_mod/sections/.return_sites
+/sys/module/dm_mod/sections/.gnu.linkonce.this_module
+/sys/module/dm_mod/sections/.symtab
+/sys/module/dm_mod/sections/.rodata
+/sys/module/dm_mod/sections/.init.text
+/sys/module/dm_mod/sections/.note.gnu.build-id
+/sys/module/dm_mod/sections/.text
+/sys/module/dm_mod/sections/.init.data
+/sys/module/dm_mod/sections/.call_sites
+/sys/module/dm_mod/sections/.data
+/sys/module/dm_mod/sections/.altinstr_replacement
+/sys/module/dm_mod/sections/.smp_locks
+/sys/module/dm_mod/sections/.rodata.str1.1
+/sys/module/dm_mod/sections/.text.unlikely
+/sys/module/dm_mod/sections/.retpoline_sites
+/sys/module/dm_mod/sections/.altinstr_aux
+/sys/module/dm_mod/sections/.rodata.str1.8
+/sys/module/dm_mod/sections/.ref.text
+/sys/module/dm_mod/sections/.export_symbol
+/sys/module/crc32c_intel/notes/.note.Linux
+/sys/module/crc32c_intel/notes/.note.gnu.build-id
+/sys/module/crc32c_intel/sections/.orc_unwind
+/sys/module/crc32c_intel/sections/.note.Linux
+/sys/module/crc32c_intel/sections/.strtab
+/sys/module/crc32c_intel/sections/.exit.text
+/sys/module/crc32c_intel/sections/.exit.data
+/sys/module/crc32c_intel/sections/.orc_unwind_ip
+/sys/module/crc32c_intel/sections/.return_sites
+/sys/module/crc32c_intel/sections/.gnu.linkonce.this_module
+/sys/module/crc32c_intel/sections/.symtab
+/sys/module/crc32c_intel/sections/.rodata
+/sys/module/crc32c_intel/sections/.init.text
+/sys/module/crc32c_intel/sections/.note.gnu.build-id
+/sys/module/crc32c_intel/sections/.text
+/sys/module/crc32c_intel/sections/.init.data
+/sys/module/crc32c_intel/sections/.call_sites
+/sys/module/crc32c_intel/sections/.data
+/sys/module/crc32c_intel/sections/.retpoline_sites
+/sys/module/libata/notes/.note.Linux
+/sys/module/libata/notes/.note.gnu.build-id
+/sys/module/libata/sections/.orc_unwind
+/sys/module/libata/sections/.data.once
+/sys/module/libata/sections/.printk_index
+/sys/module/libata/sections/.note.Linux
+/sys/module/libata/sections/.static_call_sites
+/sys/module/libata/sections/.strtab
+/sys/module/libata/sections/.exit.text
+/sys/module/libata/sections/.exit.data
+/sys/module/libata/sections/.bss
+/sys/module/libata/sections/.orc_unwind_ip
+/sys/module/libata/sections/.init.rodata
+/sys/module/libata/sections/.static_call.text
+/sys/module/libata/sections/.return_sites
+/sys/module/libata/sections/.gnu.linkonce.this_module
+/sys/module/libata/sections/.symtab
+/sys/module/libata/sections/.rodata
+/sys/module/libata/sections/.init.text
+/sys/module/libata/sections/.note.gnu.build-id
+/sys/module/libata/sections/.text
+/sys/module/libata/sections/.init.data
+/sys/module/libata/sections/.call_sites
+/sys/module/libata/sections/.data
+/sys/module/libata/sections/.smp_locks
+/sys/module/libata/sections/.rodata.str1.1
+/sys/module/libata/sections/.text.unlikely
+/sys/module/libata/sections/.retpoline_sites
+/sys/module/libata/sections/.rodata.str1.8
+/sys/module/libata/sections/.export_symbol
+/sys/module/libata/sections/.ref.data
+/sys/module/sg/notes/.note.Linux
+/sys/module/sg/notes/.note.gnu.build-id
+/sys/module/sg/sections/.orc_unwind
+/sys/module/sg/sections/.data.once
+/sys/module/sg/sections/.printk_index
+/sys/module/sg/sections/.note.Linux
+/sys/module/sg/sections/.static_call_sites
+/sys/module/sg/sections/.strtab
+/sys/module/sg/sections/.exit.text
+/sys/module/sg/sections/.exit.data
+/sys/module/sg/sections/.bss
+/sys/module/sg/sections/.orc_unwind_ip
+/sys/module/sg/sections/.return_sites
+/sys/module/sg/sections/.gnu.linkonce.this_module
+/sys/module/sg/sections/.symtab
+/sys/module/sg/sections/.rodata
+/sys/module/sg/sections/.init.text
+/sys/module/sg/sections/.note.gnu.build-id
+/sys/module/sg/sections/.text
+/sys/module/sg/sections/.init.data
+/sys/module/sg/sections/.call_sites
+/sys/module/sg/sections/.data
+/sys/module/sg/sections/.smp_locks
+/sys/module/sg/sections/.rodata.str1.1
+/sys/module/sg/sections/.text.unlikely
+/sys/module/sg/sections/.retpoline_sites
+/sys/module/sg/sections/.rodata.str1.8
+/sys/module/pmt_class/notes/.note.Linux
+/sys/module/pmt_class/notes/.note.gnu.build-id
+/sys/module/pmt_class/sections/.orc_unwind
+/sys/module/pmt_class/sections/.note.Linux
+/sys/module/pmt_class/sections/.static_call_sites
+/sys/module/pmt_class/sections/.strtab
+/sys/module/pmt_class/sections/.exit.text
+/sys/module/pmt_class/sections/.exit.data
+/sys/module/pmt_class/sections/.orc_unwind_ip
+/sys/module/pmt_class/sections/.return_sites
+/sys/module/pmt_class/sections/.gnu.linkonce.this_module
+/sys/module/pmt_class/sections/.symtab
+/sys/module/pmt_class/sections/.rodata
+/sys/module/pmt_class/sections/.init.text
+/sys/module/pmt_class/sections/.note.gnu.build-id
+/sys/module/pmt_class/sections/.text
+/sys/module/pmt_class/sections/.init.data
+/sys/module/pmt_class/sections/.call_sites
+/sys/module/pmt_class/sections/.data
+/sys/module/pmt_class/sections/.rodata.str1.1
+/sys/module/pmt_class/sections/.text.unlikely
+/sys/module/pmt_class/sections/.retpoline_sites
+/sys/module/pmt_class/sections/.rodata.str1.8
+/sys/module/pmt_class/sections/.export_symbol
+/sys/module/ttm/notes/.note.Linux
+/sys/module/ttm/notes/.note.gnu.build-id
+/sys/module/ttm/sections/.altinstructions
+/sys/module/ttm/sections/.orc_unwind
+/sys/module/ttm/sections/.data..read_mostly
+/sys/module/ttm/sections/.printk_index
+/sys/module/ttm/sections/.note.Linux
+/sys/module/ttm/sections/.static_call_sites
+/sys/module/ttm/sections/.strtab
+/sys/module/ttm/sections/.bss
+/sys/module/ttm/sections/.orc_unwind_ip
+/sys/module/ttm/sections/.return_sites
+/sys/module/ttm/sections/.gnu.linkonce.this_module
+/sys/module/ttm/sections/.symtab
+/sys/module/ttm/sections/.rodata
+/sys/module/ttm/sections/.note.gnu.build-id
+/sys/module/ttm/sections/.text
+/sys/module/ttm/sections/.call_sites
+/sys/module/ttm/sections/.data
+/sys/module/ttm/sections/.altinstr_replacement
+/sys/module/ttm/sections/.smp_locks
+/sys/module/ttm/sections/.rodata.str1.1
+/sys/module/ttm/sections/.text.unlikely
+/sys/module/ttm/sections/.retpoline_sites
+/sys/module/ttm/sections/.rodata.str1.8
+/sys/module/ttm/sections/.export_symbol
+/sys/module/intel_rapl_common/notes/.note.Linux
+/sys/module/intel_rapl_common/notes/.note.gnu.build-id
+/sys/module/intel_rapl_common/sections/.altinstructions
+/sys/module/intel_rapl_common/sections/.orc_unwind
+/sys/module/intel_rapl_common/sections/.printk_index
+/sys/module/intel_rapl_common/sections/.note.Linux
+/sys/module/intel_rapl_common/sections/.strtab
+/sys/module/intel_rapl_common/sections/.exit.text
+/sys/module/intel_rapl_common/sections/.exit.data
+/sys/module/intel_rapl_common/sections/.bss
+/sys/module/intel_rapl_common/sections/.orc_unwind_ip
+/sys/module/intel_rapl_common/sections/.init.rodata
+/sys/module/intel_rapl_common/sections/.return_sites
+/sys/module/intel_rapl_common/sections/.gnu.linkonce.this_module
+/sys/module/intel_rapl_common/sections/.symtab
+/sys/module/intel_rapl_common/sections/.rodata
+/sys/module/intel_rapl_common/sections/.init.text
+/sys/module/intel_rapl_common/sections/.note.gnu.build-id
+/sys/module/intel_rapl_common/sections/.text
+/sys/module/intel_rapl_common/sections/.init.data
+/sys/module/intel_rapl_common/sections/.call_sites
+/sys/module/intel_rapl_common/sections/.data
+/sys/module/intel_rapl_common/sections/.altinstr_replacement
+/sys/module/intel_rapl_common/sections/.rodata.str1.1
+/sys/module/intel_rapl_common/sections/.text.unlikely
+/sys/module/intel_rapl_common/sections/.retpoline_sites
+/sys/module/intel_rapl_common/sections/.rodata.str1.8
+/sys/module/intel_rapl_common/sections/.export_symbol
+/sys/module/dm_mirror/notes/.note.Linux
+/sys/module/dm_mirror/notes/.note.gnu.build-id
+/sys/module/dm_mirror/sections/.orc_unwind
+/sys/module/dm_mirror/sections/.printk_index
+/sys/module/dm_mirror/sections/.note.Linux
+/sys/module/dm_mirror/sections/.static_call_sites
+/sys/module/dm_mirror/sections/.strtab
+/sys/module/dm_mirror/sections/.exit.text
+/sys/module/dm_mirror/sections/.exit.data
+/sys/module/dm_mirror/sections/.bss
+/sys/module/dm_mirror/sections/.orc_unwind_ip
+/sys/module/dm_mirror/sections/.return_sites
+/sys/module/dm_mirror/sections/.gnu.linkonce.this_module
+/sys/module/dm_mirror/sections/.symtab
+/sys/module/dm_mirror/sections/.rodata
+/sys/module/dm_mirror/sections/.init.text
+/sys/module/dm_mirror/sections/.note.gnu.build-id
+/sys/module/dm_mirror/sections/.text
+/sys/module/dm_mirror/sections/.init.data
+/sys/module/dm_mirror/sections/.call_sites
+/sys/module/dm_mirror/sections/.data
+/sys/module/dm_mirror/sections/.smp_locks
+/sys/module/dm_mirror/sections/.rodata.str1.1
+/sys/module/dm_mirror/sections/.text.unlikely
+/sys/module/dm_mirror/sections/.retpoline_sites
+/sys/module/dm_mirror/sections/.rodata.str1.8
+/sys/module/i2c_piix4/notes/.note.Linux
+/sys/module/i2c_piix4/notes/.note.gnu.build-id
+/sys/module/i2c_piix4/sections/.orc_unwind
+/sys/module/i2c_piix4/sections/.note.Linux
+/sys/module/i2c_piix4/sections/.strtab
+/sys/module/i2c_piix4/sections/.exit.text
+/sys/module/i2c_piix4/sections/.exit.data
+/sys/module/i2c_piix4/sections/.bss
+/sys/module/i2c_piix4/sections/.orc_unwind_ip
+/sys/module/i2c_piix4/sections/.return_sites
+/sys/module/i2c_piix4/sections/.gnu.linkonce.this_module
+/sys/module/i2c_piix4/sections/.symtab
+/sys/module/i2c_piix4/sections/.rodata
+/sys/module/i2c_piix4/sections/.init.text
+/sys/module/i2c_piix4/sections/.note.gnu.build-id
+/sys/module/i2c_piix4/sections/.text
+/sys/module/i2c_piix4/sections/.init.data
+/sys/module/i2c_piix4/sections/.call_sites
+/sys/module/i2c_piix4/sections/.data
+/sys/module/i2c_piix4/sections/.rodata.str1.1
+/sys/module/i2c_piix4/sections/.parainstructions
+/sys/module/i2c_piix4/sections/.text.unlikely
+/sys/module/i2c_piix4/sections/.rodata.str1.8
+/sys/module/vmw_vsock_vmci_transport/notes/.note.Linux
+/sys/module/vmw_vsock_vmci_transport/notes/.note.gnu.build-id
+/sys/module/vmw_vsock_vmci_transport/sections/.orc_unwind
+/sys/module/vmw_vsock_vmci_transport/sections/.data.once
+/sys/module/vmw_vsock_vmci_transport/sections/.printk_index
+/sys/module/vmw_vsock_vmci_transport/sections/.note.Linux
+/sys/module/vmw_vsock_vmci_transport/sections/.strtab
+/sys/module/vmw_vsock_vmci_transport/sections/.exit.text
+/sys/module/vmw_vsock_vmci_transport/sections/.exit.data
+/sys/module/vmw_vsock_vmci_transport/sections/.bss
+/sys/module/vmw_vsock_vmci_transport/sections/.orc_unwind_ip
+/sys/module/vmw_vsock_vmci_transport/sections/.return_sites
+/sys/module/vmw_vsock_vmci_transport/sections/.gnu.linkonce.this_module
+/sys/module/vmw_vsock_vmci_transport/sections/.symtab
+/sys/module/vmw_vsock_vmci_transport/sections/.rodata
+/sys/module/vmw_vsock_vmci_transport/sections/.init.text
+/sys/module/vmw_vsock_vmci_transport/sections/.note.gnu.build-id
+/sys/module/vmw_vsock_vmci_transport/sections/.text
+/sys/module/vmw_vsock_vmci_transport/sections/.init.data
+/sys/module/vmw_vsock_vmci_transport/sections/.call_sites
+/sys/module/vmw_vsock_vmci_transport/sections/.data
+/sys/module/vmw_vsock_vmci_transport/sections/.smp_locks
+/sys/module/vmw_vsock_vmci_transport/sections/.rodata.str1.1
+/sys/module/vmw_vsock_vmci_transport/sections/.text.unlikely
+/sys/module/vmw_vsock_vmci_transport/sections/.retpoline_sites
+/sys/module/vmw_vsock_vmci_transport/sections/.rodata.str1.8
+/sys/module/snd_seq_dummy/notes/.note.Linux
+/sys/module/snd_seq_dummy/notes/.note.gnu.build-id
+/sys/module/snd_seq_dummy/sections/.orc_unwind
+/sys/module/snd_seq_dummy/sections/.printk_index
+/sys/module/snd_seq_dummy/sections/.note.Linux
+/sys/module/snd_seq_dummy/sections/.strtab
+/sys/module/snd_seq_dummy/sections/.exit.text
+/sys/module/snd_seq_dummy/sections/.exit.data
+/sys/module/snd_seq_dummy/sections/.bss
+/sys/module/snd_seq_dummy/sections/.orc_unwind_ip
+/sys/module/snd_seq_dummy/sections/.return_sites
+/sys/module/snd_seq_dummy/sections/.gnu.linkonce.this_module
+/sys/module/snd_seq_dummy/sections/.symtab
+/sys/module/snd_seq_dummy/sections/.rodata
+/sys/module/snd_seq_dummy/sections/.init.text
+/sys/module/snd_seq_dummy/sections/.note.gnu.build-id
+/sys/module/snd_seq_dummy/sections/.text
+/sys/module/snd_seq_dummy/sections/.init.data
+/sys/module/snd_seq_dummy/sections/.call_sites
+/sys/module/snd_seq_dummy/sections/.data
+/sys/module/snd_seq_dummy/sections/.rodata.str1.1
+/sys/module/snd_seq_dummy/sections/.rodata.str1.8
+/sys/module/crc32_pclmul/notes/.note.Linux
+/sys/module/crc32_pclmul/notes/.note.gnu.build-id
+/sys/module/crc32_pclmul/sections/.orc_unwind
+/sys/module/crc32_pclmul/sections/.printk_index
+/sys/module/crc32_pclmul/sections/.note.Linux
+/sys/module/crc32_pclmul/sections/.strtab
+/sys/module/crc32_pclmul/sections/.exit.text
+/sys/module/crc32_pclmul/sections/.exit.data
+/sys/module/crc32_pclmul/sections/.orc_unwind_ip
+/sys/module/crc32_pclmul/sections/.return_sites
+/sys/module/crc32_pclmul/sections/.gnu.linkonce.this_module
+/sys/module/crc32_pclmul/sections/.symtab
+/sys/module/crc32_pclmul/sections/.rodata
+/sys/module/crc32_pclmul/sections/.init.text
+/sys/module/crc32_pclmul/sections/.note.gnu.build-id
+/sys/module/crc32_pclmul/sections/.text
+/sys/module/crc32_pclmul/sections/.init.data
+/sys/module/crc32_pclmul/sections/.call_sites
+/sys/module/crc32_pclmul/sections/.data
+/sys/module/crc32_pclmul/sections/.rodata.str1.8
+/sys/module/pcspkr/notes/.note.Linux
+/sys/module/pcspkr/notes/.note.gnu.build-id
+/sys/module/pcspkr/sections/.orc_unwind
+/sys/module/pcspkr/sections/.note.Linux
+/sys/module/pcspkr/sections/.strtab
+/sys/module/pcspkr/sections/.exit.text
+/sys/module/pcspkr/sections/.exit.data
+/sys/module/pcspkr/sections/.orc_unwind_ip
+/sys/module/pcspkr/sections/.return_sites
+/sys/module/pcspkr/sections/.gnu.linkonce.this_module
+/sys/module/pcspkr/sections/.symtab
+/sys/module/pcspkr/sections/.rodata
+/sys/module/pcspkr/sections/.init.text
+/sys/module/pcspkr/sections/.note.gnu.build-id
+/sys/module/pcspkr/sections/.text
+/sys/module/pcspkr/sections/.init.data
+/sys/module/pcspkr/sections/.call_sites
+/sys/module/pcspkr/sections/.data
+/sys/module/pcspkr/sections/.rodata.str1.1
+/sys/module/pcspkr/sections/.parainstructions
+/sys/module/snd_rawmidi/notes/.note.Linux
+/sys/module/snd_rawmidi/notes/.note.gnu.build-id
+/sys/module/snd_rawmidi/sections/.orc_unwind
+/sys/module/snd_rawmidi/sections/.printk_index
+/sys/module/snd_rawmidi/sections/.note.Linux
+/sys/module/snd_rawmidi/sections/.static_call_sites
+/sys/module/snd_rawmidi/sections/.strtab
+/sys/module/snd_rawmidi/sections/.exit.text
+/sys/module/snd_rawmidi/sections/.exit.data
+/sys/module/snd_rawmidi/sections/.bss
+/sys/module/snd_rawmidi/sections/.orc_unwind_ip
+/sys/module/snd_rawmidi/sections/.return_sites
+/sys/module/snd_rawmidi/sections/.gnu.linkonce.this_module
+/sys/module/snd_rawmidi/sections/.symtab
+/sys/module/snd_rawmidi/sections/.rodata
+/sys/module/snd_rawmidi/sections/.init.text
+/sys/module/snd_rawmidi/sections/.note.gnu.build-id
+/sys/module/snd_rawmidi/sections/.text
+/sys/module/snd_rawmidi/sections/.init.data
+/sys/module/snd_rawmidi/sections/.call_sites
+/sys/module/snd_rawmidi/sections/.data
+/sys/module/snd_rawmidi/sections/.smp_locks
+/sys/module/snd_rawmidi/sections/.rodata.str1.1
+/sys/module/snd_rawmidi/sections/.text.unlikely
+/sys/module/snd_rawmidi/sections/.retpoline_sites
+/sys/module/snd_rawmidi/sections/.rodata.str1.8
+/sys/module/snd_rawmidi/sections/.export_symbol
+/sys/module/snd_ens1371/notes/.note.Linux
+/sys/module/snd_ens1371/notes/.note.gnu.build-id
+/sys/module/snd_ens1371/sections/.orc_unwind
+/sys/module/snd_ens1371/sections/.note.Linux
+/sys/module/snd_ens1371/sections/.static_call_sites
+/sys/module/snd_ens1371/sections/.strtab
+/sys/module/snd_ens1371/sections/.exit.text
+/sys/module/snd_ens1371/sections/.exit.data
+/sys/module/snd_ens1371/sections/.bss
+/sys/module/snd_ens1371/sections/.orc_unwind_ip
+/sys/module/snd_ens1371/sections/.return_sites
+/sys/module/snd_ens1371/sections/.gnu.linkonce.this_module
+/sys/module/snd_ens1371/sections/.symtab
+/sys/module/snd_ens1371/sections/.rodata
+/sys/module/snd_ens1371/sections/.init.text
+/sys/module/snd_ens1371/sections/.note.gnu.build-id
+/sys/module/snd_ens1371/sections/.text
+/sys/module/snd_ens1371/sections/.init.data
+/sys/module/snd_ens1371/sections/.call_sites
+/sys/module/snd_ens1371/sections/.data
+/sys/module/snd_ens1371/sections/.rodata.str1.1
+/sys/module/snd_ens1371/sections/.text.unlikely
+/sys/module/snd_ens1371/sections/.rodata.str1.8
+/sys/module/sr_mod/notes/.note.Linux
+/sys/module/sr_mod/notes/.note.gnu.build-id
+/sys/module/sr_mod/sections/.orc_unwind
+/sys/module/sr_mod/sections/.note.Linux
+/sys/module/sr_mod/sections/.strtab
+/sys/module/sr_mod/sections/.exit.text
+/sys/module/sr_mod/sections/.exit.data
+/sys/module/sr_mod/sections/.bss
+/sys/module/sr_mod/sections/.orc_unwind_ip
+/sys/module/sr_mod/sections/.return_sites
+/sys/module/sr_mod/sections/.gnu.linkonce.this_module
+/sys/module/sr_mod/sections/.symtab
+/sys/module/sr_mod/sections/.rodata
+/sys/module/sr_mod/sections/.init.text
+/sys/module/sr_mod/sections/.note.gnu.build-id
+/sys/module/sr_mod/sections/.text
+/sys/module/sr_mod/sections/.init.data
+/sys/module/sr_mod/sections/.call_sites
+/sys/module/sr_mod/sections/.data
+/sys/module/sr_mod/sections/.smp_locks
+/sys/module/sr_mod/sections/.rodata.str1.1
+/sys/module/sr_mod/sections/.rodata.str1.8
+/sys/module/drm/notes/.note.Linux
+/sys/module/drm/notes/.note.gnu.build-id
+/sys/module/drm/sections/.altinstructions
+/sys/module/drm/sections/.orc_unwind
+/sys/module/drm/sections/.data.once
+/sys/module/drm/sections/.data..read_mostly
+/sys/module/drm/sections/.printk_index
+/sys/module/drm/sections/.note.Linux
+/sys/module/drm/sections/.static_call_sites
+/sys/module/drm/sections/.strtab
+/sys/module/drm/sections/.exit.data
+/sys/module/drm/sections/.bss
+/sys/module/drm/sections/.orc_unwind_ip
+/sys/module/drm/sections/.static_call.text
+/sys/module/drm/sections/.return_sites
+/sys/module/drm/sections/.gnu.linkonce.this_module
+/sys/module/drm/sections/.symtab
+/sys/module/drm/sections/.rodata
+/sys/module/drm/sections/.init.text
+/sys/module/drm/sections/.note.gnu.build-id
+/sys/module/drm/sections/.text
+/sys/module/drm/sections/.init.data
+/sys/module/drm/sections/.call_sites
+/sys/module/drm/sections/.data
+/sys/module/drm/sections/.altinstr_replacement
+/sys/module/drm/sections/.smp_locks
+/sys/module/drm/sections/.rodata.str1.1
+/sys/module/drm/sections/.text.unlikely
+/sys/module/drm/sections/.retpoline_sites
+/sys/module/drm/sections/.altinstr_aux
+/sys/module/drm/sections/.rodata.str1.8
+/sys/module/drm/sections/.export_symbol
+/sys/module/drm/sections/.ref.data
+/tmp/.X1025-lock
+/tmp/.X1024-lock
+/etc/skel/.bash_logout
+/etc/skel/.bash_profile
+/etc/skel/.bashrc
+/etc/.pwd.lock
+/etc/selinux/targeted/.policy.sha512
+/etc/.updated
+/root/.bash_logout
+/root/.bash_profile
+/root/.bashrc
+/root/.cshrc
+/root/.tcshrc
+/root/.config/.gsd-keyboard.settings-ported
+/root/.local/share/flatpak/.changed
+/root/.bash_history
+/root/.mozilla/firefox/uqb8seec.default-default/.parentlock
+/root/.mozilla/firefox/uqb8seec.default-default/storage/permanent/chrome/.metadata-v2
+/root/.mozilla/firefox/uqb8seec.default-default/storage/default/https+++www.mozilla.org/.metadata-v2
+/root/.lesshst
+/var/lib/rpm/.rpm.lock
+/var/lib/flatpak/.changed
+/var/lib/gdm/.config/.gsd-keyboard.settings-ported
+/var/spool/at/.SEQ
+/var/.updated
+/usr/lib/modules/5.14.0-479.el9.x86_64/.vmlinuz.hmac
+/usr/lib64/.libgmp.so.10.4.0.hmac
+/usr/lib64/.libnettle.so.8.8.hmac
+/usr/lib64/.libgnutls.so.30.37.1.hmac
+/usr/lib64/.libhogweed.so.6.8.hmac
+/usr/share/man/man5/.k5identity.5.gz
+/usr/share/man/man5/.k5login.5.gz
+/usr/share/man/man1/..1.gz
+/usr/share/alsa/ucm2/conf.virt.d/.gitignore
+/.autorelabel
+ 
+2. 현황(숨겨진 디렉토리) : find / -name .* -type d 
+/home/fedora/.mozilla
+/home/fedora/.local
+/home/ansible/.mozilla
+/home/ansible/.ssh
+/home/ansible/.ansible
+/home/test/.mozilla
+/home/test/.local
+/home/test/.config
+/home/test/.cache
+/tmp/.X11-unix
+/tmp/.ICE-unix
+/tmp/.XIM-unix
+/tmp/.font-unix
+/etc/skel/.mozilla
+/root/.ssh
+/root/.cache
+/root/.config
+/root/.local
+/root/.mozilla
+/root/.ansible
+/var/lib/colord/.cache
+/var/lib/gdm/.config
+/var/lib/gdm/.cache
+/var/lib/gdm/.local
+/usr/lib/debug/.dwz
+/usr/lib/.build-id
+ 
+[END]
+[U-19] Finger 서비스 비활성화
+ 
+[START]
+판단기준 참고 : 아래 결과 값 내에 파일이 존재하지 않을경우 양호 
+ 
+1. 현황 : /etc/inetd.conf
+cat: /etc/inetd.conf: No such file or directory
+ 
+2. 현황(xinetd 일경우) : /etc/xinetd.d
+ls: cannot access '/etc/xinetd.d': No such file or directory
+ 
+3. 현황(xinetd 일경우) : /etc/xinetd.d/* egrep 'echo finger' 
+ 
+[END]
+[U-20] Anonymous FTP 비활성화
+ 
+[START]
+판단기준 : Anonymous(익명)에 대한 ftp 접근이 제한되어 있으면 양호 
+ 
+1. 현황 : ftp 서비스 확인 
+ 
+2. 현황 : cat /etc/passwd | egrep 'ftp|anonymous' FTP 계정 삭제 권고
+ftp:x:14:50:FTP User:/var/ftp:/sbin/nologin
+ 
+3. 현황 : vsftpd 서비스 확인
+ 
+4. 현황 : /etc/vsftpd.conf (anonymous_enable=NO 또는 주석처리시 확인)
+cat: /etc/vsftpd.conf: No such file or directory
+ 
+5. 현황 : /etc/vsftpd/vsftpd.conf
+cat: /etc/vsftpd/vsftpd.conf: No such file or directory
+ 
+[END]
+[U-21] r 계열 서비스 비활성화
+ 
+[START]
+판단기준 참고 : rsh, rlogin, rexec (shell, login, exec) 서비스가 비활성화 되어있거나 결과값이 없을경우에 양호
+ 
+1. 현황 : 서비스 확인
+ 
+2. rsh, rlogin, rexec 서비스 설정 확인 (Disable=yes 설정시 양호)
+2-1. cat /etc/xinetd.d/rsh 
+cat: /etc/xinetd.d/rsh: No such file or directory
+ 
+2-2. cat /etc/xinetd.d/rlogin
+cat: /etc/xinetd.d/rlogin: No such file or directory
+ 
+2-3. cat /etc/xinetd.d/rexec
+cat: /etc/xinetd.d/rexec: No such file or directory
+ 
+ 
+[END]
+[U-22] cron파일 소유자 및 권한 설정
+ 
+[START]
+판단기준 : cron 파일의 소유자가 root이고 640이하이면 양호
+ 
+1. 현황 : /etc/cron.allow, deny 파일 권한 확인
+-rw-r--r--. 1 root root   0 Nov 30  2023 /etc/cron.deny
+-rw-r--r--. 1 root root 451 Aug 10  2021 /etc/crontab
+
+/etc/cron.d:
+total 16
+drwxr-xr-x.   2 root root   21 Aug  6  2024 .
+drwxr-xr-x. 133 root root 8192 Mar 24 14:25 ..
+-rw-r--r--.   1 root root  128 Nov 30  2023 0hourly
+
+/etc/cron.daily:
+total 12
+drwxr-xr-x.   2 root root    6 Aug 10  2021 .
+drwxr-xr-x. 133 root root 8192 Mar 24 14:25 ..
+
+/etc/cron.hourly:
+total 16
+drwxr-xr-x.   2 root root   22 Aug 10  2021 .
+drwxr-xr-x. 133 root root 8192 Mar 24 14:25 ..
+-rwxr-xr-x.   1 root root  610 Nov 30  2023 0anacron
+
+/etc/cron.monthly:
+total 12
+drwxr-xr-x.   2 root root    6 Aug 10  2021 .
+drwxr-xr-x. 133 root root 8192 Mar 24 14:25 ..
+
+/etc/cron.weekly:
+total 12
+drwxr-xr-x.   2 root root    6 Aug 10  2021 .
+drwxr-xr-x. 133 root root 8192 Mar 24 14:25 ..
+ 
+ 
+2. 참고 : /etc -name cron.* -type f -ls 파일 권한 확인
+101728063      0 -rw-r--r--   1 root     root            0 Nov 30  2023 /etc/cron.deny
+ 
+[END]
+[U-23] DoS공격에 취약한 서비스 비활성화
+ 
+[START]
+판단기준 : echo, discard, daytime, chargen 서비스가 비활성화 되어있거나 결과값이 없을경우에 양호
+ 
+1. 현황 : ls -al /etc/xinetd.d
+ls: cannot access '/etc/xinetd.d': No such file or directory
+ 
+2. 설정파일 확인 (Disable=yes 설정시 양호)
+2-1. 현황 : chargen 확인 
+cat: /etc/xinetd.d/chargen: No such file or directory
+cat: /etc/xinetd.d/chargen-dgram: No such file or directory
+ 
+2-2. 현황 : daytime 확인 
+cat: /etc/xinetd.d/daytime: No such file or directory
+cat: /etc/xinetd.d/daytime-dgram: No such file or directory
+ 
+2-3. 현황 : discard 확인 
+cat: /etc/xinetd.d/discard: No such file or directory
+cat: /etc/xinetd.d/discard-dgram: No such file or directory
+ 
+2-4. 현황 : echo 확인 
+cat: /etc/xinetd.d/echo: No such file or directory
+cat: /etc/xinetd.d/echo-dgram: No such file or directory
+ 
+ 
+[END]
+[U-24] NFS 서비스 비활성화
+ 
+[START]
+판단기준 : 불필요한 NFS 서비스 관련 데몬이 비활성화 되어 있는 경우
+ 
+1. 현황 : nfs|mountd|statd 서비스 확인
+ 
+2. 참고 : service nfs status 실행(NFS 프로세스의 Status 필드 inactive면 양호) 
+Redirecting to /bin/systemctl status nfs.service
+Unit nfs.service could not be found.
+ 
+ 
+[END]
+[U-25] NFS 접근통제
+ 
+[START]
+판단기준 : NFS 서비스를 사용하지 않거나 불필요하게 사용시 everyone 공유를 제한한경우 양호
+ 
+현황 : cat /etc/exports
+ 
+ 
+[END]
+[U-26] automountd 제거
+ 
+[START]
+판단기준 : automountd 서비스가 구동중이지 않으면 양호
+ 
+1. 현황 : automountd 서비스 확인
+ 
+ 
+[END]
+[U-27] RPC 서비스 확인
+ 
+[START]
+판단기준 :  불필요한 RPC 관련 서비스가 존재하지 않으면 양호
+불필요한 RPC 서비스 >> rpc.cmsd|rpc.ttdbserverd|sadmind|rusersd|walld|sprayd|rstatd|rpc.nisd
+불필요한 RPC 서비스 >> rpc.pcnfsd|rpc.statd|rpc.ypupdated|rpc.rquotad|kcms_server|cachefsd|rexd
+ 
+1. 현황 : /etc/inetd.conf 파일 확인
+ 
+2. 현황 : /etc/xinetd.d/rpc.cmsd 파일 확인
+ 
+3. 현황 : ls -al /etc/xinetd.d/*
+ls: cannot access '/etc/xinetd.d/*': No such file or directory
+ 
+ 
+[END]
+[U-28] NIS, NIS+ 점검
+ 
+[START]
+판단기준 : NIS, NIS+ 서비스를 비활성이면 양호
+ 
+1. 현황 : NIS 서비스 확인
+ 
+ 
+[END]
+[U-29] Tftp, talk 서비스 비 활성화
+ 
+[START]
+판단기준 : tftp , tallk 서비스가 비활성이면 양호 
+ 
+1. 현황 : tftp,talk 서비스 확인
+ 
+2. 현황 : /etc/inetd.conf 주석처리여부 확인
+ 
+판단기준 참고 : 서비스 확인시, disable=yes이면 양호)
+ 
+3-1. 현황 : cat /etc/xinetd.d/tftp
+cat: /etc/xinetd.d/tftp: No such file or directory
+ 
+3-2. 현황 : cat /etc/xinetd.d/talk
+cat: /etc/xinetd.d/talk: No such file or directory
+ 
+3-3. 현황 : cat /etc/xinetd.d/ntalk
+cat: /etc/xinetd.d/ntalk: No such file or directory
+ 
+ 
+[END]
+[U-30] Sendmail 버전 점검
+[START]
+판단기준 : sendmail을 사용하지 않거나 버전이 최신버전(8.13.8 이상)인 경우 양호
+ 
+1. 현황 : sendmail 데몬 구동 확인
+root       10299    9510  0 14:42 pts/0    00:00:00 grep sendmail
+ 
+2-1. 현황 :/etc/mail/sendmail.cf 파일이 없습니다.
+ 
+2-2. 현황 : /etc/sendmail.cf 파일이 없습니다.
+ 
+3. 참고 : sendmail 포트 오픈 확인
+/root/.ansible/tmp/ansible-tmp-1742794963.0845604-74-241204112734727/2022_ICTIS_Unix_v1.0.sh: line 1892: telnet: command not found
+ 
+[END]
+[U-31] 스팸 메일 릴레이 제한
+[START]
+판단기준 : SMTP 서비스를 사용하지 않거나, 릴레이 제한 설정을 했으면 양호
+ 
+1. 현황 : sendmail 데몬 구동 확인
+root       10304    9510  0 14:42 pts/0    00:00:00 grep sendmail
+ 
+2-1. 현황 :/etc/mail/sendmail.cf 파일이 없습니다.
+ 
+2-2. 현황 : /etc/sendmail.cf 파일이 없습니다.
+ 
+ 
+[END]
+[U-32] 일반 사용자의 sendmail 실행 방지
+[START]
+판단기준 : SMTP 서비스를 사용하지 않거나, 일반 사용자의 Sendmail 사용 방지 설정(PrivacyOptions=restrictqrun) 인 경우 양호
+ 
+1. 현황 : sendmail 데몬 구동 확인
+root       10306    9510  0 14:42 pts/0    00:00:00 grep sendmail
+ 
+2-1. 현황 :/etc/mail/sendmail.cf 파일이 없습니다.
+ 
+2-2. 현황 : /etc/sendmail.cf 파일이 없습니다.
+ 
+[END]
+[U-33] DNS 보안 버전 패치
+ 
+[START]
+판단기준 : DNS 서비스를 사용하지 않거나, 양호한 버전을 사용하고 있을 경우에 양호(8.4.6, 8.4.7, 9.2.8-P1, 9.3.4-P1, 9.3.5-P1, 9.4.1-P1, 9.4.2-P2, 9.5.0-P1, 9.5.0a6)
+ 
+1. 현황 : named 프로세스 확인
+ 
+2-1. 현황 : DNS 버전 확인(dig)
+
+; <<>> DiG 9.16.23-RH <<>>
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 38853
+;; flags: qr rd ra ad; QUERY: 1, ANSWER: 13, AUTHORITY: 0, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 512
+;; QUESTION SECTION:
+;.				IN	NS
+
+;; ANSWER SECTION:
+.			87203	IN	NS	e.root-servers.net.
+.			87203	IN	NS	b.root-servers.net.
+.			87203	IN	NS	g.root-servers.net.
+.			87203	IN	NS	j.root-servers.net.
+.			87203	IN	NS	d.root-servers.net.
+.			87203	IN	NS	i.root-servers.net.
+.			87203	IN	NS	h.root-servers.net.
+.			87203	IN	NS	f.root-servers.net.
+.			87203	IN	NS	c.root-servers.net.
+.			87203	IN	NS	k.root-servers.net.
+.			87203	IN	NS	l.root-servers.net.
+.			87203	IN	NS	a.root-servers.net.
+.			87203	IN	NS	m.root-servers.net.
+
+;; Query time: 38 msec
+;; SERVER: 8.8.8.8#53(8.8.8.8)
+;; WHEN: Mon Mar 24 14:42:46 KST 2025
+;; MSG SIZE  rcvd: 239
+
+2-2. 현황 : DNS 버전 확인(named -v)
+/root/.ansible/tmp/ansible-tmp-1742794963.0845604-74-241204112734727/2022_ICTIS_Unix_v1.0.sh: line 1983: named: command not found
+ 
+[END]
+[U-34] DNS Zone Transfer 설정
+ 
+[START]
+판단기준 : DNS 서비스 미사용 또는 Zone Fransfer를 허가된 사용자에게만 허용한 경우
+ 
+1. 현황 : DNS 서비스 구동 확인
+ 
+2-1. 현황 :/etc/named.conf이 없습니다.
+ 
+3-2. 현황 : /etc/bind/named.conf.options이 없습니다.
+ 
+4-2. 현황 : /etc/named.boot 없습니다.
+ 
+ 
+[END]
+[U-35] 웹서비스 디렉터리 리스팅 제거
+ 
+[START]
+판단기준 : 디렉터리 검색 기능을 사용하지 않는 경우(httpd.conf 파일의 Directory 부분의 Options 지시자에 Indexes가 설정되어 있지 않으면 양호)
+ 
+1-1. 현황 : ps -ef | grep httpd 없습니다.
+ 
+1-2. 현황 : ps -ef | grep apache 없습니다.
+ 
+1-3. 현황 : Apache 상태 확인
+Redirecting to /bin/systemctl status httpd.service
+Unit httpd.service could not be found.
+ 
+1-4. 현황 : Apache 상태 확인(CentOS7 이상)
+Unit httpd.service could not be found.
+ 
+1-5. 현황 : Apache 상태 확인(Ubuntu)
+Redirecting to /bin/systemctl status apache2.service
+Unit apache2.service could not be found.
+ 
+2. 현황 : httpd.conf 파일 확인
+===================
+ 
+2. 현황 : httpd_conf 파일 없음 (양호)
+ 
+[END]
+[U-36] 웹서비스 프로세스 권한 제한
+ 
+[START]
+판단기준 : Apache 데몬이 root 권한으로 구동되지 않은 경우 양호
+ 
+1. 현황 : 구동여부는 U-51을 보고 판단
+ 
+2. 현황 : httpd.conf 파일 확인
+===================
+2. 현황 : httpd_conf 파일 없음 (양호)
+ 
+ 
+[END]
+[U-37] 웹서비스 상위 디렉터리 접근 금지
+ 
+[START]
+판단기준 : 상위 디렉터리에 이동 제한을 설정한 경우(directory 부분의 AllowOverride None 설정이 아니면 양호)
+ 
+ 
+1. 현황 : 구동여부는 U-51을 보고 판단
+ 
+2. 현황 : httpd.conf 파일 확인
+===================
+2. 현황 : httpd_conf 파일 없음 (양호)
+ 
+ 
+[END]
+ 
+[U-38] 웹서비스 불필요한 파일 제거
+ 
+[START]
+판단기준 : Default로 생성되는 불필요한 파일이 제거되어 있는 경우 양호
+ 
+1. 현황 : manual 파일 없음 (양호)
+2. 현황 : cgi-bin 디렉터리 없음 (양호)
+[END]
+[U-39] 웹서비스 링크 사용 금지
+ 
+[START]
+판단기준 : 심볼릭 링크 , aliases 사용을 제한한 경우(Options 지시자에서 심블릭 링크를 가능하게 하는 옵션인 FollowSymLinks가 제거된 경우 양호)
+ 
+2. 현황 : httpd_conf 파일 없음 (양호)
+ 
+ 
+[END]
+[U-40] 웹서비스 파일 업로드 및 다운로드 제한
+ 
+[START]
+판단기준 참고 : 시스템에 따라 파일 업로드 및 다운로드에 대한 용량이 제한되어 있는 경우 양호
+ 
+2. 현황 : httpd_conf 파일 없음 (양호)
+ 
+ 
+[END]
+[U-41] 웹 서비스 영역의 분리
+ 
+[START]
+판단기준 : DocumentRoot를 기본 디렉터리(/usr/local/apache/htdocs, /usr/local/apache2/htdocs, /var/www/html)가 아닌 별도의 디렉토리로 지정한 경우 양호
+ 
+1. 현황 : httpd_conf 파일 내에 DocumentRoot 확인
+ 
+2. 현황 : httpd_conf 파일 없음 (양호)
+ 
+ 
+[END]
+[U-60] SSH 원격접속 허용
+ 
+[START]
+판단기준 : 원격 접속 시 SSH 프로토콜을 사용 했을 경우
+ 
+1. 현황 : ssh 서비스 확인(PS)
+root         983       1  0 14:25 ?        00:00:00 sshd: /usr/sbin/sshd -D [listener] 0 of 10-100 startups
+root        9140     983  0 14:42 ?        00:00:00 sshd: root [priv]
+root        9158    9140  0 14:42 ?        00:00:00 sshd: root@pts/0
+ 
+1-1. 현황 : ssh 서비스 확인
+Redirecting to /bin/systemctl status sshd.service
+* sshd.service - OpenSSH server daemon
+     Loaded: loaded (/usr/lib/systemd/system/sshd.service; enabled; preset: enabled)
+     Active: active (running) since Mon 2025-03-24 14:25:09 KST; 17min ago
+       Docs: man:sshd(8)
+             man:sshd_config(5)
+   Main PID: 983 (sshd)
+      Tasks: 1 (limit: 48564)
+     Memory: 4.9M
+        CPU: 201ms
+     CGroup: /system.slice/sshd.service
+             `-983 "sshd: /usr/sbin/sshd -D [listener] 0 of 10-100 startups"
+
+Mar 24 14:35:07 lb.example.com sshd[3350]: Accepted publickey for root from 192.168.1.102 port 60974 ssh2: RSA SHA256:x/8StXrlqcxHX+GM9bR/L8LSZkE/W6oyQHv5otuI4mw
+Mar 24 14:35:07 lb.example.com sshd[3350]: pam_unix(sshd:session): session opened for user root(uid=0) by root(uid=0)
+Mar 24 14:38:43 lb.example.com sshd[4801]: Accepted publickey for root from 192.168.1.102 port 35972 ssh2: RSA SHA256:x/8StXrlqcxHX+GM9bR/L8LSZkE/W6oyQHv5otuI4mw
+Mar 24 14:38:43 lb.example.com sshd[4801]: pam_unix(sshd:session): session opened for user root(uid=0) by root(uid=0)
+Mar 24 14:39:09 lb.example.com sshd[6248]: Accepted publickey for root from 192.168.1.102 port 50694 ssh2: RSA SHA256:x/8StXrlqcxHX+GM9bR/L8LSZkE/W6oyQHv5otuI4mw
+Mar 24 14:39:09 lb.example.com sshd[6248]: pam_unix(sshd:session): session opened for user root(uid=0) by root(uid=0)
+Mar 24 14:41:48 lb.example.com sshd[7695]: Accepted publickey for root from 192.168.1.102 port 44284 ssh2: RSA SHA256:x/8StXrlqcxHX+GM9bR/L8LSZkE/W6oyQHv5otuI4mw
+Mar 24 14:41:48 lb.example.com sshd[7695]: pam_unix(sshd:session): session opened for user root(uid=0) by root(uid=0)
+Mar 24 14:42:41 lb.example.com sshd[9140]: Accepted publickey for root from 192.168.1.102 port 48388 ssh2: RSA SHA256:x/8StXrlqcxHX+GM9bR/L8LSZkE/W6oyQHv5otuI4mw
+Mar 24 14:42:41 lb.example.com sshd[9140]: pam_unix(sshd:session): session opened for user root(uid=0) by root(uid=0)
+ 
+1-2. 현황 : ssh 서비스 확인(CentOS7)
+Unit ssh.service could not be found.
+ 
+ 
+[END]
+[U-61] FTP 서비스 확인
+ 
+[START]
+판단기준 : ftp 서비스가 비활성화 되어 있는 경우 양호  
+ 
+1. 현황 : ftp 프로세스 없음
+ 
+2-1. 참고 : /etc/xinetd.d/tftp 파일이 없습니다.
+ 
+2-2. 참고 : /etc/xinetd.d/vsftp 파일이 없습니다.
+ 
+ 
+[END]
+[U-62] FTP계정 shell 제한
+ 
+[START]
+ 
+판단기준 : ftp 서비스가 비활성화 또는 ftp 계정의 쉘이 /bin/false(솔라리스 /usr/bin/false) 또는 /sbin/nologin이면 양호  
+판단기준 참고 : ftp 서비스 상태는 59번 항목 참고
+ 
+1. 현황 : /etc/passwd | grep ftp
+ftp:x:14:50:FTP User:/var/ftp:/sbin/nologin
+ 
+[END]
+[U-63] FTPusers 파일 소유자 및 권한설정
+ 
+[START]
+판단기준 : ftpusers 파일 소유자가 root이면서 파일권한 640 이하일시 양호
+ 
+1-1. 현황(기본FTP/ProFTP) : /etc/ftpusers 파일이 없습니다.
+ 
+1-2. 현황(기본FTP/ProFTP) : /etc/ftpd/ftpusers 파일이 없습니다.
+ 
+1-3. 현황(vsFTP) : /etc/vsftpd/ftpusers 파일이 없습니다.
+ 
+1-4. 현황(vsFTP) : /etc/vsftpd/user_list 파일이 없습니다.
+ 
+1-5. 현황(vsFTP) : /etc/vsftpd.ftpusers 파일이 없습니다.
+ 
+1-6. 현황(vsFTP) : /etc/vsftpd.user_lists 파일이 없습니다.
+ 
+ 
+[END]
+[U-64] FTPusers 파일 설정
+ 
+[START]
+판단기준 : root 주석 미처리 또는 rootlogin off 일경우 양호 
+ 
+1-1. 현황(기본FTP/ProFTP) : /etc/ftpusers 파일이 없습니다.
+ 
+1-2. 현황(기본FTP/ProFTP) : /etc/ftpd/ftpusers 파일이 없습니다.
+ 
+1-3. 현황(vsFTP) : /etc/vsftpd/ftpusers 파일이 없습니다.
+ 
+1-4. 현황(vsFTP) : /etc/vsftpd/user_list 파일이 없습니다.
+ 
+1-5. 현황(vsFTP) : /etc/vsftpd.ftpusers 파일이 없습니다.
+ 
+1-6. 현황(vsFTP) : /etc/vsftpd.user_list 파일이 없습니다.
+ 
+ 
+[END]
+[U-65] At 파일 소유자 및 권한 설정
+ 
+[START]
+판단기준 : 파일의 소유자가 root이면서 파일권한 640 이하면 양호 
+ 
+1. 현황 : at 접근제어 파일 확인
+-rw-r--r--. 1 root root 1 Apr  4  2022 /etc/at.deny
+ 
+ 
+[END]
+[U-66] Snmp 서비스 구동 점검
+ 
+[START]
+판단기준 : SNMP 서비스를 사용하지 않는 경우 양호 
+ 
+1. 현황 : SNMP 프로세스 확인
+ 
+ 
+[END]
+[U-67] Snmp 서비스 Community string의 복잡성 설정
+[START]
+판단기준 : Community string이 public/private가 아니라면 양호 
+1. 참고 : Snmp 서비스 상태는 65번 항목 참고
+ 
+2-1. 현황 : snmp 설정값 확인 /etc/snmpd/snmpd.conf
+ 
+2-2. 현황 : snmp 설정값 확인 /etc/snmp/conf/snmpd.conf
+ 
+ 
+[END]
+[U-68] 로그온 시 경고 메시지 제공
+ 
+[START]
+판단기준 : 로그온 메시지가 설정되어 있지 않을경우 취약
+ 
+1. 현황 : issue 확인
+-rw-r--r-- 1 root root 3 Mar 10 11:21 /etc/issue
+ 
+LB
+ 
+2. 현황 : issue.net 확인 
+-rw-r--r--. 1 root root 22 Mar 21  2024 /etc/issue.net
+ 
+\S
+Kernel \r on an \m
+ 
+3. 현황 : /etc/motd 확인
+-rw-r--r--. 1 root root 0 Jun 23  2020 /etc/motd
+ 
+ 
+ 
+[END]
+[U-69] NFS 설정파일 접근권한
+ 
+[START]
+판단기준 : NFS 접근제어 설정파일의 소유자가 root 이고, 권한이 644 이하 일경우 양호
+ 
+현황 : /etc/exports 확인
+-rw-r--r--. 1 root root 0 Jun 23  2020 /etc/exports
+ 
+ 
+ 
+[END]
+[U-70] Expn, vrfy 명령어 제한
+[START]
+판단기준 : SMTP 서비스 미사용 또는 PrivacyOptions=goaway(noexpn,novrfy)를 포함하고 있을경우 양호 
+ 
+1. 참고 : SMTP 서비스 상태는 48번 항목 참고
+2. 현황 :/etc/mail/sendmail.cf 접근권한 확인 
+ 
+ 
+[END]
+[U-71] Apache 웹 서비스 정보 숨김
+ 
+[START]
+판단기준 : ServerTokens Prod 설정이 없는 경우 Default 설정(ServerTokens Full)이 적용됨,ServerTokens Prod 설정인 경우 양호
+ 
+ 
+1. 현황 : httpd_conf 파일 없음 (양호)
+ 
+[END]
+[U-42] 최신 보안패치 및 벤더 권고사항 적용
+ 
+[START]
+판단기준 : kernel 패치 버전 확인
+ 
+1. 현황 : 패치 확인
+kernel-tools-libs-5.14.0-479.el9.x86_64
+kernel-tools-5.14.0-479.el9.x86_64
+kernel-modules-core-5.14.0-479.el9.x86_64
+kernel-core-5.14.0-479.el9.x86_64
+kernel-modules-5.14.0-479.el9.x86_64
+kernel-5.14.0-479.el9.x86_64
+ 
+2. 현황 : uname -r
+5.14.0-479.el9.x86_64
+ 
+3. 현황 : cat /etc/*release* | grep -i Linux
+REDHAT_SUPPORT_PRODUCT="Red Hat Enterprise Linux 9"
+ 
+ 
+[END]
+[U-43] 로그의 정기적 검토 및 보고
+ 
+[START]
+판단기준 참고 : InterView 
+ 
+[END]
+[U-72] 정책에 따른 시스템 로깅 설정
+ 
+[START]
+판단기준 : alert,info에 대해서 파일에 로그가 남도록 설정되어 있다면 양호
+ 
+1. 현황 : syslog (PS)
+root        1042       1  0 14:25 ?        00:00:00 /usr/sbin/rsyslogd -n
+ 
+2. 현황 : /etc/syslog.conf 파일 없음
+ 
+3. 현황 : /etc/rsyslog.conf
+-rw-r--r--. 1 root root 3380 Jan  8  2024 /etc/rsyslog.conf
+
+
+
+global(workDirectory="/var/lib/rsyslog")
+
+module(load="builtin:omfile" Template="RSYSLOG_TraditionalFileFormat")
+
+
+module(load="imuxsock" 	  # provides support for local system logging (e.g. via logger command)
+       SysSock.Use="off") # Turn off message reception via local log socket; 
+			  # local messages are retrieved through imjournal now.
+module(load="imjournal" 	    # provides access to the systemd journal
+       UsePid="system" # PID nummber is retrieved as the ID of the process the journal entry originates from
+       FileCreateMode="0644" # Set the access permissions for the state file
+       StateFile="imjournal.state") # File to store the position in the journal
+
+include(file="/etc/rsyslog.d/*.conf" mode="optional")
+
+
+
+
+
+*.info;mail.none;authpriv.none;cron.none                /var/log/messages
+
+authpriv.*                                              /var/log/secure
+
+mail.*                                                  -/var/log/maillog
+
+
+cron.*                                                  /var/log/cron
+
+*.emerg                                                 :omusrmsg:*
+
+uucp,news.crit                                          /var/log/spooler
+
+local7.*                                                /var/log/boot.log
+
+
+ 
+4. [Ubuntu]현황 : /etc/rsyslog.conf 파일 없음
+ 
+[END]
+ 
+======================================================================================================
+======================================================================================================
+Mon Mar 24 14:42:47 KST 2025
+ 
+UNIX/Linux Security Check END
+===============================================================
+☞ UNIX 스크립트 작업이 완료되었습니다.
+ 
+☞ 스크립트 결과 파일을 보안담당자에게 전달 바랍니다.
+ 
+☞ 스크립트 관련 오류 및 문의사항은 (주)한국통신인터넷기술 직원에게 부탁드립니다.
+ 
+☞ 감사합니다.
+===============================================================
+ 
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+Reference info.
+<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+ 
+****************************************************************************************************
+****************************************   INFO_CHKSTART   *************************************
+****************************************************************************************************
+ 
+==============================
+System Information Query Start
+==============================
+ 
+--------------------------------------   Kernel Information   --------------------------------------
+ 
+Linux lb.example.com 5.14.0-479.el9.x86_64 #1 SMP PREEMPT_DYNAMIC Thu Jul 11 13:03:28 UTC 2024 x86_64 x86_64 x86_64 GNU/Linux
+ 
+----------------------------------------------------------------------------------------------------
+ 
+----------------------------------------   IP Information   ----------------------------------------
+ 
+ens160: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 192.168.1.200  netmask 255.255.255.0  broadcast 192.168.1.255
+        inet6 fe80::20c:29ff:fe59:c700  prefixlen 64  scopeid 0x20<link>
+        ether 00:0c:29:59:c7:00  txqueuelen 1000  (Ethernet)
+        RX packets 7954  bytes 3197657 (3.0 MiB)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 5673  bytes 647713 (632.5 KiB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+lo: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536
+        inet 127.0.0.1  netmask 255.0.0.0
+        inet6 ::1  prefixlen 128  scopeid 0x10<host>
+        loop  txqueuelen 1000  (Local Loopback)
+        RX packets 27  bytes 2411 (2.3 KiB)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 27  bytes 2411 (2.3 KiB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+ 
+----------------------------------------------------------------------------------------------------
+ 
+----------------------------------------   Network Status   ----------------------------------------
+ 
+Active Internet connections (servers and established)
+tcp        0      0 127.0.0.1:631           0.0.0.0:*               LISTEN     
+tcp        0      0 0.0.0.0:22              0.0.0.0:*               LISTEN     
+tcp        0      0 0.0.0.0:80              0.0.0.0:*               LISTEN     
+tcp        0      0 192.168.1.200:22        192.168.1.102:48388     ESTABLISHED
+tcp6       0      0 :::22                   :::*                    LISTEN     
+tcp6       0      0 ::1:631                 :::*                    LISTEN     
+Active UNIX domain sockets (servers and established)
+unix  2      [ ACC ]     STREAM     LISTENING     26317    @/tmp/.ICE-unix/1330
+unix  2      [ ACC ]     STREAM     LISTENING     16805    /run/systemd/journal/io.systemd.journal
+unix  2      [ ACC ]     STREAM     LISTENING     26160    /run/user/42/systemd/private
+unix  2      [ ACC ]     STREAM     LISTENING     144801   /run/user/0/systemd/private
+unix  2      [ ACC ]     STREAM     LISTENING     27763    /run/user/42/bus
+unix  2      [ ACC ]     STREAM     LISTENING     144809   /run/user/0/bus
+unix  2      [ ACC ]     STREAM     LISTENING     144811   /run/user/0/pipewire-0
+unix  2      [ ACC ]     STREAM     LISTENING     27765    /run/user/42/pulse/native
+unix  2      [ ACC ]     STREAM     LISTENING     144813   /run/user/0/pipewire-0-manager
+unix  2      [ ACC ]     STREAM     LISTENING     27767    /run/user/42/pipewire-0
+unix  2      [ ACC ]     STREAM     LISTENING     27769    /run/user/42/pipewire-0-manager
+unix  2      [ ACC ]     STREAM     LISTENING     14144    /run/systemd/userdb/io.systemd.DynamicUser
+unix  2      [ ACC ]     STREAM     LISTENING     14145    /run/systemd/io.system.ManagedOOM
+unix  2      [ ACC ]     STREAM     LISTENING     28005    /run/user/42/wayland-0
+unix  2      [ ACC ]     STREAM     LISTENING     14156    /run/systemd/journal/stdout
+unix  2      [ ACC ]     STREAM     LISTENING     24891    @ISCSID_UIP_ABSTRACT_NAMESPACE
+unix  2      [ ACC ]     STREAM     LISTENING     26318    /tmp/.ICE-unix/1330
+unix  2      [ ACC ]     STREAM     LISTENING     27696    /var/lib/haproxy/stats.1058.tmp
+unix  2      [ ACC ]     STREAM     LISTENING     26843    @/tmp/dbus-nW6XkTXe
+unix  2      [ ACC ]     STREAM     LISTENING     28002    /tmp/.X11-unix/X1024
+unix  2      [ ACC ]     STREAM     LISTENING     28004    /tmp/.X11-unix/X1025
+unix  2      [ ACC ]     STREAM     LISTENING     30116    @/var/lib/gdm/.cache/ibus/dbus-tGr0dxnW
+unix  2      [ ACC ]     STREAM     LISTENING     27325    /tmp/dbus-WXwhn8R6Gh
+unix  2      [ ACC ]     STREAM     LISTENING     24887    /run/avahi-daemon/socket
+unix  2      [ ACC ]     STREAM     LISTENING     24888    /run/cups/cups.sock
+unix  2      [ ACC ]     STREAM     LISTENING     24889    /run/dbus/system_bus_socket
+unix  2      [ ACC ]     STREAM     LISTENING     24892    /run/.heim_org.h5l.kcm-socket
+unix  2      [ ACC ]     STREAM     LISTENING     25300    @/tmp/dbus-iVdsDGPusr
+unix  2      [ ACC ]     STREAM     LISTENING     26841    @/tmp/dbus-8TRgRaWA
+unix  2      [ ACC ]     STREAM     LISTENING     26844    @/tmp/dbus-Cb0DeItd
+unix  2      [ ACC ]     STREAM     LISTENING     24928    /var/run/mcelog-client
+unix  2      [ ACC ]     STREAM     LISTENING     17290    /var/run/lsm/ipc/sim
+unix  2      [ ACC ]     STREAM     LISTENING     24890    @ISCSIADM_ABSTRACT_NAMESPACE
+unix  2      [ ACC ]     STREAM     LISTENING     17293    /var/run/lsm/ipc/simc
+unix  2      [ ACC ]     STREAM     LISTENING     26842    @/tmp/dbus-dSfE1aMF
+unix  2      [ ACC ]     STREAM     LISTENING     28003    @/tmp/.X11-unix/X1025
+unix  2      [ ACC ]     STREAM     LISTENING     28001    @/tmp/.X11-unix/X1024
+unix  2      [ ACC ]     STREAM     LISTENING     24968    /var/run/vmware/guestServicePipe
+unix  2      [ ACC ]     STREAM     LISTENING     16764    /run/systemd/private
+unix  2      [ ACC ]     STREAM     LISTENING     16776    /run/lvm/lvmpolld.socket
+unix  2      [ ACC ]     SEQPACKET  LISTENING     16778    /run/systemd/coredump
+unix  2      [ ACC ]     SEQPACKET  LISTENING     16780    /run/udev/control
+Active Bluetooth connections (servers and established)
+ 
+----------------------------------------------------------------------------------------------------
+ 
+-------------------------------------   Routing Information   --------------------------------------
+ 
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags   MSS Window  irtt Iface
+0.0.0.0         192.168.1.110   0.0.0.0         UG        0 0          0 ens160
+192.168.1.0     0.0.0.0         255.255.255.0   U         0 0          0 ens160
+ 
+----------------------------------------------------------------------------------------------------
+ 
+---------------------------------------   Process Status   -----------------------------------------
+ 
+UID          PID    PPID  C STIME TTY          TIME CMD
+root           1       0  0 14:25 ?        00:00:01 /usr/lib/systemd/systemd rhgb --switched-root --system --deserialize 31
+root           2       0  0 14:25 ?        00:00:00 [kthreadd]
+root           3       2  0 14:25 ?        00:00:00 [pool_workqueue_]
+root           4       2  0 14:25 ?        00:00:00 [kworker/R-rcu_g]
+root           5       2  0 14:25 ?        00:00:00 [kworker/R-rcu_p]
+root           6       2  0 14:25 ?        00:00:00 [kworker/R-slub_]
+root           7       2  0 14:25 ?        00:00:00 [kworker/R-netns]
+root           9       2  0 14:25 ?        00:00:00 [kworker/0:0H-events_highpri]
+root          11       2  0 14:25 ?        00:00:00 [kworker/R-mm_pe]
+root          13       2  0 14:25 ?        00:00:00 [rcu_tasks_kthre]
+root          14       2  0 14:25 ?        00:00:00 [rcu_tasks_rude_]
+root          15       2  0 14:25 ?        00:00:00 [rcu_tasks_trace]
+root          16       2  0 14:25 ?        00:00:00 [ksoftirqd/0]
+root          17       2  0 14:25 ?        00:00:00 [rcu_preempt]
+root          18       2  0 14:25 ?        00:00:00 [migration/0]
+root          19       2  0 14:25 ?        00:00:00 [idle_inject/0]
+root          21       2  0 14:25 ?        00:00:00 [cpuhp/0]
+root          22       2  0 14:25 ?        00:00:00 [cpuhp/1]
+root          23       2  0 14:25 ?        00:00:00 [idle_inject/1]
+root          24       2  0 14:25 ?        00:00:00 [migration/1]
+root          25       2  0 14:25 ?        00:00:00 [ksoftirqd/1]
+root          26       2  0 14:25 ?        00:00:00 [kworker/1:0-rcu_gp]
+root          28       2  0 14:25 ?        00:00:00 [cpuhp/2]
+root          29       2  0 14:25 ?        00:00:00 [idle_inject/2]
+root          30       2  0 14:25 ?        00:00:00 [migration/2]
+root          31       2  0 14:25 ?        00:00:00 [ksoftirqd/2]
+root          34       2  0 14:25 ?        00:00:00 [cpuhp/3]
+root          35       2  0 14:25 ?        00:00:00 [idle_inject/3]
+root          36       2  0 14:25 ?        00:00:00 [migration/3]
+root          37       2  0 14:25 ?        00:00:00 [ksoftirqd/3]
+root          38       2  0 14:25 ?        00:00:00 [kworker/3:0-cgroup_destroy]
+root          39       2  0 14:25 ?        00:00:00 [kworker/3:0H-events_highpri]
+root          41       2  0 14:25 ?        00:00:00 [kworker/u512:2-flush-253:0]
+root          43       2  0 14:25 ?        00:00:00 [kworker/u512:4-writeback]
+root          44       2  0 14:25 ?        00:00:00 [kdevtmpfs]
+root          45       2  0 14:25 ?        00:00:00 [kworker/R-inet_]
+root          46       2  0 14:25 ?        00:00:00 [kauditd]
+root          47       2  0 14:25 ?        00:00:00 [kworker/0:2-cgroup_destroy]
+root          50       2  0 14:25 ?        00:00:00 [khungtaskd]
+root          51       2  0 14:25 ?        00:00:00 [oom_reaper]
+root          52       2  0 14:25 ?        00:00:00 [kworker/R-write]
+root          53       2  0 14:25 ?        00:00:00 [kcompactd0]
+root          54       2  0 14:25 ?        00:00:00 [ksmd]
+root          57       2  0 14:25 ?        00:00:00 [khugepaged]
+root          58       2  0 14:25 ?        00:00:00 [kworker/R-crypt]
+root          59       2  0 14:25 ?        00:00:00 [kworker/R-kinte]
+root          60       2  0 14:25 ?        00:00:00 [kworker/R-kbloc]
+root          61       2  0 14:25 ?        00:00:00 [kworker/R-blkcg]
+root          63       2  0 14:25 ?        00:00:00 [kworker/R-tpm_d]
+root          64       2  0 14:25 ?        00:00:00 [kworker/R-md]
+root          65       2  0 14:25 ?        00:00:00 [kworker/R-md_bi]
+root          66       2  0 14:25 ?        00:00:00 [kworker/R-edac-]
+root          67       2  0 14:25 ?        00:00:00 [watchdogd]
+root          68       2  0 14:25 ?        00:00:00 [kworker/2:1H-kblockd]
+root          69       2  0 14:25 ?        00:00:00 [kswapd0]
+root          75       2  0 14:25 ?        00:00:00 [kworker/R-kthro]
+root          80       2  0 14:25 ?        00:00:00 [irq/24-pciehp]
+root          81       2  0 14:25 ?        00:00:00 [irq/25-pciehp]
+root          82       2  0 14:25 ?        00:00:00 [irq/26-pciehp]
+root          83       2  0 14:25 ?        00:00:00 [irq/27-pciehp]
+root          84       2  0 14:25 ?        00:00:00 [irq/28-pciehp]
+root          85       2  0 14:25 ?        00:00:00 [irq/29-pciehp]
+root          86       2  0 14:25 ?        00:00:00 [irq/30-pciehp]
+root          87       2  0 14:25 ?        00:00:00 [irq/31-pciehp]
+root          88       2  0 14:25 ?        00:00:00 [irq/32-pciehp]
+root          89       2  0 14:25 ?        00:00:00 [irq/33-pciehp]
+root          90       2  0 14:25 ?        00:00:00 [irq/34-pciehp]
+root          91       2  0 14:25 ?        00:00:00 [irq/35-pciehp]
+root          92       2  0 14:25 ?        00:00:00 [irq/36-pciehp]
+root          93       2  0 14:25 ?        00:00:00 [irq/37-pciehp]
+root          94       2  0 14:25 ?        00:00:00 [irq/38-pciehp]
+root          95       2  0 14:25 ?        00:00:00 [irq/39-pciehp]
+root          96       2  0 14:25 ?        00:00:00 [irq/40-pciehp]
+root          97       2  0 14:25 ?        00:00:00 [irq/41-pciehp]
+root          98       2  0 14:25 ?        00:00:00 [irq/42-pciehp]
+root          99       2  0 14:25 ?        00:00:00 [irq/43-pciehp]
+root         100       2  0 14:25 ?        00:00:00 [irq/44-pciehp]
+root         101       2  0 14:25 ?        00:00:00 [irq/45-pciehp]
+root         102       2  0 14:25 ?        00:00:00 [irq/46-pciehp]
+root         103       2  0 14:25 ?        00:00:00 [irq/47-pciehp]
+root         104       2  0 14:25 ?        00:00:00 [irq/48-pciehp]
+root         105       2  0 14:25 ?        00:00:00 [irq/49-pciehp]
+root         106       2  0 14:25 ?        00:00:00 [irq/50-pciehp]
+root         107       2  0 14:25 ?        00:00:00 [irq/51-pciehp]
+root         108       2  0 14:25 ?        00:00:00 [irq/52-pciehp]
+root         109       2  0 14:25 ?        00:00:00 [irq/53-pciehp]
+root         110       2  0 14:25 ?        00:00:00 [irq/54-pciehp]
+root         111       2  0 14:25 ?        00:00:00 [irq/55-pciehp]
+root         112       2  0 14:25 ?        00:00:00 [kworker/R-acpi_]
+root         113       2  0 14:25 ?        00:00:00 [kworker/R-kmpat]
+root         114       2  0 14:25 ?        00:00:00 [kworker/R-kalua]
+root         115       2  0 14:25 ?        00:00:00 [kworker/R-mld]
+root         116       2  0 14:25 ?        00:00:00 [kworker/0:1H-xfs-log/dm-0]
+root         117       2  0 14:25 ?        00:00:00 [kworker/R-ipv6_]
+root         126       2  0 14:25 ?        00:00:00 [kworker/R-kstrp]
+root         240       2  0 14:25 ?        00:00:00 [kworker/u513:0-ttm]
+root         242       2  0 14:25 ?        00:00:00 [kworker/3:1H-kblockd]
+root         280       2  0 14:25 ?        00:00:00 [kworker/1:1H-kblockd]
+root         448       2  0 14:25 ?        00:00:00 [kworker/R-mpt_p]
+root         450       2  0 14:25 ?        00:00:00 [kworker/R-mpt/0]
+root         466       2  0 14:25 ?        00:00:00 [kworker/R-ata_s]
+root         467       2  0 14:25 ?        00:00:00 [scsi_eh_0]
+root         468       2  0 14:25 ?        00:00:00 [kworker/R-scsi_]
+root         469       2  0 14:25 ?        00:00:00 [scsi_eh_1]
+root         470       2  0 14:25 ?        00:00:00 [kworker/R-scsi_]
+root         471       2  0 14:25 ?        00:00:00 [scsi_eh_2]
+root         472       2  0 14:25 ?        00:00:00 [kworker/R-scsi_]
+root         477       2  0 14:25 ?        00:00:00 [irq/16-vmwgfx]
+root         478       2  0 14:25 ?        00:00:00 [kworker/R-ttm]
+root         516       2  0 14:25 ?        00:00:00 [kworker/1:2H-kblockd]
+root         549       2  0 14:25 ?        00:00:00 [kworker/R-kdmfl]
+root         556       2  0 14:25 ?        00:00:00 [kworker/R-kdmfl]
+root         575       2  0 14:25 ?        00:00:00 [kworker/R-xfsal]
+root         576       2  0 14:25 ?        00:00:00 [kworker/R-xfs_m]
+root         577       2  0 14:25 ?        00:00:00 [kworker/R-xfs-b]
+root         578       2  0 14:25 ?        00:00:00 [kworker/R-xfs-c]
+root         579       2  0 14:25 ?        00:00:00 [kworker/R-xfs-r]
+root         580       2  0 14:25 ?        00:00:00 [kworker/R-xfs-b]
+root         581       2  0 14:25 ?        00:00:00 [kworker/R-xfs-i]
+root         582       2  0 14:25 ?        00:00:00 [kworker/R-xfs-l]
+root         583       2  0 14:25 ?        00:00:00 [kworker/R-xfs-c]
+root         584       2  0 14:25 ?        00:00:00 [xfsaild/dm-0]
+root         654       1  0 14:25 ?        00:00:00 /usr/lib/systemd/systemd-journald
+root         661       2  0 14:25 ?        00:00:00 [kworker/0:4-events]
+root         671       1  0 14:25 ?        00:00:00 vmware-vmblock-fuse /run/vmblock-fuse -o rw,subtype=vmware-vmblock,default_permissions,allow_other,dev,suid
+root         674       1  0 14:25 ?        00:00:00 /usr/lib/systemd/systemd-udevd
+root         729       2  0 14:25 ?        00:00:00 [kworker/R-kdmfl]
+root         739       2  0 14:25 ?        00:00:00 [irq/61-vmw_vmci]
+root         740       2  0 14:25 ?        00:00:00 [irq/62-vmw_vmci]
+root         741       2  0 14:25 ?        00:00:00 [irq/63-vmw_vmci]
+root         771       2  0 14:25 ?        00:00:00 [kworker/R-xfs-b]
+root         772       2  0 14:25 ?        00:00:00 [kworker/R-xfs-c]
+root         773       2  0 14:25 ?        00:00:00 [kworker/R-xfs-r]
+root         774       2  0 14:25 ?        00:00:00 [kworker/R-xfs-b]
+root         775       2  0 14:25 ?        00:00:00 [kworker/R-xfs-i]
+root         776       2  0 14:25 ?        00:00:00 [kworker/R-xfs-b]
+root         777       2  0 14:25 ?        00:00:00 [kworker/R-xfs-c]
+root         778       2  0 14:25 ?        00:00:00 [kworker/R-xfs-r]
+root         779       2  0 14:25 ?        00:00:00 [kworker/R-xfs-b]
+root         780       2  0 14:25 ?        00:00:00 [kworker/R-xfs-i]
+root         781       2  0 14:25 ?        00:00:00 [kworker/R-xfs-l]
+root         782       2  0 14:25 ?        00:00:00 [kworker/R-xfs-c]
+root         783       2  0 14:25 ?        00:00:00 [kworker/R-xfs-l]
+root         784       2  0 14:25 ?        00:00:00 [xfsaild/sda1]
+root         785       2  0 14:25 ?        00:00:00 [kworker/R-xfs-c]
+root         786       2  0 14:25 ?        00:00:00 [xfsaild/dm-2]
+root         792       1  0 14:25 ?        00:00:00 /sbin/auditd
+root         794     792  0 14:25 ?        00:00:00 /usr/sbin/sedispatch
+dbus         815       1  0 14:25 ?        00:00:00 /usr/bin/dbus-broker-launch --scope system --audit
+dbus         816     815  0 14:25 ?        00:00:00 dbus-broker --log 4 --controller 9 --machine-id 0a49a4452a3a48dab2772ff0f8f7d0cb --max-bytes 536870912 --max-fds 4096 --max-matches 131072 --audit
+root         817       1  0 14:25 ?        00:00:00 /usr/sbin/NetworkManager --no-daemon
+avahi        818       1  0 14:25 ?        00:00:00 avahi-daemon: running [lb.local]
+root         821       1  0 14:25 ?        00:00:00 /usr/sbin/irqbalance
+libstor+     822       1  0 14:25 ?        00:00:00 /usr/bin/lsmd -d
+root         823       1  0 14:25 ?        00:00:00 /usr/sbin/mcelog --daemon --foreground
+polkitd      824       1  0 14:25 ?        00:00:00 /usr/lib/polkit-1/polkitd --no-debug
+rtkit        825       1  0 14:25 ?        00:00:00 /usr/libexec/rtkit-daemon
+root         826       1  0 14:25 ?        00:00:00 /usr/libexec/accounts-daemon
+root         828       1  0 14:25 ?        00:00:00 /usr/libexec/switcheroo-control
+root         829       1  0 14:25 ?        00:00:00 /usr/lib/systemd/systemd-logind
+chrony       833       1  0 14:25 ?        00:00:00 /usr/sbin/chronyd
+root         837       1  0 14:25 ?        00:00:00 /usr/libexec/udisks2/udisksd
+root         839       1  0 14:25 ?        00:00:00 /usr/libexec/upowerd
+root         841       1  0 14:25 ?        00:00:00 /usr/bin/VGAuthService -s
+root         843       1  0 14:25 ?        00:00:00 /usr/bin/vmtoolsd
+avahi        845     818  0 14:25 ?        00:00:00 avahi-daemon: chroot helper
+root         849       1  0 14:25 ?        00:00:00 /usr/sbin/alsactl -s -n 19 -c -E ALSA_CONFIG_PATH=/etc/alsa/alsactl.conf --initfile=/lib/alsa/init/00main rdaemon
+root         872       1  0 14:25 ?        00:00:00 /usr/sbin/ModemManager
+root         979       1  0 14:25 ?        00:00:00 /usr/sbin/cupsd -l
+root         983       1  0 14:25 ?        00:00:00 sshd: /usr/sbin/sshd -D [listener] 0 of 10-100 startups
+root        1000       1  0 14:25 ?        00:00:00 /usr/sbin/atd -f
+root        1013       1  0 14:25 ?        00:00:00 /usr/sbin/crond -n
+root        1016       1  0 14:25 ?        00:00:00 /usr/sbin/gdm
+root        1042       1  0 14:25 ?        00:00:00 /usr/sbin/rsyslogd -n
+root        1046    1016  0 14:25 ?        00:00:00 gdm-session-worker [pam/gdm-launch-environment]
+root        1058       1  0 14:25 ?        00:00:00 /usr/sbin/haproxy -Ws -f /etc/haproxy/haproxy.cfg -f /etc/haproxy/conf.d -p /run/haproxy.pid
+gdm         1105       1  0 14:25 ?        00:00:00 /usr/lib/systemd/systemd --user
+gdm         1110    1105  0 14:25 ?        00:00:00 (sd-pam)
+haproxy     1130    1058  0 14:25 ?        00:00:00 /usr/sbin/haproxy -Ws -f /etc/haproxy/haproxy.cfg -f /etc/haproxy/conf.d -p /run/haproxy.pid
+gdm         1230    1046  0 14:25 tty1     00:00:00 /usr/libexec/gdm-wayland-session --register-session dbus-run-session -- gnome-session --autostart /usr/share/gdm/greeter/autostart
+gdm         1236    1105  0 14:25 ?        00:00:00 /usr/bin/dbus-broker-launch --scope user
+gdm         1299    1236  0 14:25 ?        00:00:00 dbus-broker --log 4 --controller 9 --machine-id 0a49a4452a3a48dab2772ff0f8f7d0cb --max-bytes 100000000000000 --max-fds 25000000000000 --max-matches 5000000000
+gdm         1310    1230  0 14:25 tty1     00:00:00 dbus-run-session -- gnome-session --autostart /usr/share/gdm/greeter/autostart
+gdm         1319    1310  0 14:25 tty1     00:00:00 dbus-daemon --nofork --print-address 4 --session
+gdm         1330    1310  0 14:25 tty1     00:00:00 /usr/libexec/gnome-session-binary --autostart /usr/share/gdm/greeter/autostart
+gdm         1438    1330  0 14:25 tty1     00:00:02 /usr/bin/gnome-shell
+gdm         1760       1  0 14:25 tty1     00:00:00 /usr/libexec/at-spi-bus-launcher
+gdm         1765    1760  0 14:25 tty1     00:00:00 /usr/bin/dbus-daemon --config-file=/usr/share/defaults/at-spi2/accessibility.conf --nofork --print-address 3
+gdm         1771    1438  0 14:25 tty1     00:00:00 /usr/bin/Xwayland :1024 -rootless -noreset -accessx -core -auth /run/user/42/.mutter-Xwaylandauth.OOF232 -listenfd 4 -listenfd 5 -displayfd 6 -initfd 7
+gdm         1775       1  0 14:25 tty1     00:00:00 /usr/libexec/xdg-permission-store
+root        1795       1  0 14:25 ?        00:00:00 /usr/libexec/power-profiles-daemon
+gdm         1797    1105  0 14:25 ?        00:00:00 /usr/bin/pipewire
+gdm         1798    1105  0 14:25 ?        00:00:00 /usr/bin/wireplumber
+gdm         1801    1105  0 14:25 ?        00:00:00 /usr/bin/pipewire-pulse
+root        1825       1  0 14:25 ?        00:00:00 /usr/sbin/wpa_supplicant -c /etc/wpa_supplicant/wpa_supplicant.conf -u -s
+gdm         1847       1  0 14:25 tty1     00:00:00 /usr/bin/gjs /usr/share/gnome-shell/org.gnome.Shell.Notifications
+gdm         1849       1  0 14:25 tty1     00:00:00 /usr/libexec/at-spi2-registryd --use-gnome-session
+gdm         1858    1330  0 14:25 tty1     00:00:00 /usr/libexec/gsd-sharing
+gdm         1859    1330  0 14:25 tty1     00:00:00 /usr/libexec/gsd-wacom
+gdm         1862    1330  0 14:25 tty1     00:00:00 /usr/libexec/gsd-color
+gdm         1863    1330  0 14:25 tty1     00:00:00 /usr/libexec/gsd-keyboard
+gdm         1864    1330  0 14:25 tty1     00:00:00 /usr/libexec/gsd-print-notifications
+gdm         1865    1330  0 14:25 tty1     00:00:00 /usr/libexec/gsd-rfkill
+gdm         1867    1330  0 14:25 tty1     00:00:00 /usr/libexec/gsd-smartcard
+gdm         1870    1330  0 14:25 tty1     00:00:00 /usr/libexec/gsd-datetime
+gdm         1874    1330  0 14:25 tty1     00:00:00 /usr/libexec/gsd-media-keys
+gdm         1875    1330  0 14:25 tty1     00:00:00 /usr/libexec/gsd-screensaver-proxy
+gdm         1882    1330  0 14:25 tty1     00:00:00 /usr/libexec/gsd-sound
+gdm         1883    1330  0 14:25 tty1     00:00:00 /usr/libexec/gsd-a11y-settings
+gdm         1897    1330  0 14:25 tty1     00:00:00 /usr/libexec/gsd-housekeeping
+gdm         1898    1330  0 14:25 tty1     00:00:00 /usr/libexec/gsd-power
+gdm         1992       1  0 14:25 tty1     00:00:00 /usr/libexec/gsd-printer
+gdm         2008    1438  0 14:25 tty1     00:00:00 ibus-daemon --panel disable -r --xim
+colord      2018       1  0 14:25 ?        00:00:00 /usr/libexec/colord
+gdm         2022    2008  0 14:25 tty1     00:00:00 /usr/libexec/ibus-dconf
+gdm         2027       1  0 14:25 tty1     00:00:00 /usr/libexec/ibus-x11 --kill-daemon
+gdm         2034       1  0 14:25 tty1     00:00:00 /usr/libexec/ibus-portal
+gdm         2055       1  0 14:25 tty1     00:00:00 /usr/bin/gjs /usr/share/gnome-shell/org.gnome.ScreenSaver
+gdm         2108    2008  0 14:25 tty1     00:00:00 /usr/libexec/ibus-engine-simple
+root        2119       2  0 14:25 ?        00:00:00 [kworker/u513:1]
+root        2128       2  0 14:25 ?        00:00:00 [kworker/u512:5-flush-253:0]
+root        2129       2  0 14:25 ?        00:00:00 [kworker/2:2H-kblockd]
+root        2742       2  0 14:27 ?        00:00:00 [kworker/1:4-cgroup_destroy]
+root        3349       2  0 14:32 ?        00:00:00 [kworker/3:1-events]
+root        3532       2  0 14:35 ?        00:00:00 [kworker/0:0-events]
+root        4456       2  0 14:35 ?        00:00:00 [kworker/1:1-cgroup_destroy]
+root        4799       2  0 14:36 ?        00:00:00 [kworker/2:0-ata_sff]
+root        4800       2  0 14:36 ?        00:00:00 [kworker/2:2-cgroup_destroy]
+root        4996       2  0 14:38 ?        00:00:00 [kworker/3:2-ata_sff]
+root        6074       2  0 14:38 ?        00:00:00 [kworker/u512:0-events_unbound]
+root        6247       2  0 14:38 ?        00:00:00 [kworker/3:3]
+root        7691       2  0 14:39 ?        00:00:00 [kworker/0:1-cgroup_destroy]
+root        7692       2  0 14:39 ?        00:00:00 [kworker/1:2-events]
+root        7890       2  0 14:41 ?        00:00:00 [kworker/2:1-events]
+root        9139       2  0 14:42 ?        00:00:00 [kworker/2:3-events]
+root        9140     983  0 14:42 ?        00:00:00 sshd: root [priv]
+root        9143       1  0 14:42 ?        00:00:00 /usr/lib/systemd/systemd --user
+root        9144    9143  0 14:42 ?        00:00:00 (sd-pam)
+root        9158    9140  0 14:42 ?        00:00:00 sshd: root@pts/0
+root        9486    9158  0 14:42 pts/0    00:00:00 /bin/sh -c sudo -H -S -n  -u root /bin/sh -c 'echo BECOME-SUCCESS-zpnrywhocqaipzfwvwatefvdbmavegzk ;  /root/.ansible/tmp/ansible-tmp-1742794963.0845604-74-241204112734727/2022_ICTIS_Unix_v1.0.sh' && sleep 0
+root        9509    9486  0 14:42 pts/0    00:00:00 sudo -H -S -n -u root /bin/sh -c echo BECOME-SUCCESS-zpnrywhocqaipzfwvwatefvdbmavegzk ;  /root/.ansible/tmp/ansible-tmp-1742794963.0845604-74-241204112734727/2022_ICTIS_Unix_v1.0.sh
+root        9510    9509  2 14:42 pts/0    00:00:00 /bin/sh /root/.ansible/tmp/ansible-tmp-1742794963.0845604-74-241204112734727/2022_ICTIS_Unix_v1.0.sh
+root       10424    9510  0 14:42 pts/0    00:00:00 ps -ef
+ 
+----------------------------------------------------------------------------------------------------
+ 
+------------------------------------------   User Env   --------------------------------------------
+ 
+SHELL=/bin/bash
+SUDO_GID=0
+SUDO_COMMAND=/bin/sh -c echo BECOME-SUCCESS-zpnrywhocqaipzfwvwatefvdbmavegzk ;  /root/.ansible/tmp/ansible-tmp-1742794963.0845604-74-241204112734727/2022_ICTIS_Unix_v1.0.sh
+SUDO_USER=root
+PWD=/root
+LOGNAME=root
+HOME=/root
+LANG=C
+LS_COLORS=rs=0:di=01;34:ln=01;36:mh=00:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:mi=01;37;41:su=37;41:sg=30;43:ca=30;41:tw=30;42:ow=34;42:st=37;44:ex=01;32:*.tar=01;31:*.tgz=01;31:*.arc=01;31:*.arj=01;31:*.taz=01;31:*.lha=01;31:*.lz4=01;31:*.lzh=01;31:*.lzma=01;31:*.tlz=01;31:*.txz=01;31:*.tzo=01;31:*.t7z=01;31:*.zip=01;31:*.z=01;31:*.dz=01;31:*.gz=01;31:*.lrz=01;31:*.lz=01;31:*.lzo=01;31:*.xz=01;31:*.zst=01;31:*.tzst=01;31:*.bz2=01;31:*.bz=01;31:*.tbz=01;31:*.tbz2=01;31:*.tz=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.war=01;31:*.ear=01;31:*.sar=01;31:*.rar=01;31:*.alz=01;31:*.ace=01;31:*.zoo=01;31:*.cpio=01;31:*.7z=01;31:*.rz=01;31:*.cab=01;31:*.wim=01;31:*.swm=01;31:*.dwm=01;31:*.esd=01;31:*.jpg=01;35:*.jpeg=01;35:*.mjpg=01;35:*.mjpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.svg=01;35:*.svgz=01;35:*.mng=01;35:*.pcx=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.m2v=01;35:*.mkv=01;35:*.webm=01;35:*.webp=01;35:*.ogm=01;35:*.mp4=01;35:*.m4v=01;35:*.mp4v=01;35:*.vob=01;35:*.qt=01;35:*.nuv=01;35:*.wmv=01;35:*.asf=01;35:*.rm=01;35:*.rmvb=01;35:*.flc=01;35:*.avi=01;35:*.fli=01;35:*.flv=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.yuv=01;35:*.cgm=01;35:*.emf=01;35:*.ogv=01;35:*.ogx=01;35:*.aac=01;36:*.au=01;36:*.flac=01;36:*.m4a=01;36:*.mid=01;36:*.midi=01;36:*.mka=01;36:*.mp3=01;36:*.mpc=01;36:*.ogg=01;36:*.ra=01;36:*.wav=01;36:*.oga=01;36:*.opus=01;36:*.spx=01;36:*.xspf=01;36:
+TERM=xterm
+USER=root
+SHLVL=1
+PATH=/sbin:/bin:/usr/sbin:/usr/bin
+SUDO_UID=0
+MAIL=/var/mail/root
+_=/bin/env
+ 
+----------------------------------------------------------------------------------------------------
+ 
+============================
+System Information Query End
+============================
+ 
+****************************************************************************************************
+*****************************************   INFO_CHKEND   **************************************
+****************************************************************************************************
+ 
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
