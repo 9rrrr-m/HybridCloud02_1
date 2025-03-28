@@ -1026,3 +1026,45 @@
         ```
         
     - (확인) `ans all -m shell -a 'systemctl get-default'`
+
+
+- 취약점 검사하기 - server_script.yml
+    
+    - 주요정보통신기반시설 기술적 취약점 분석 평가를 위해 다음과 같은 보안 취약점 검사 스크립트를 실행하고 결과 레포트를 수집한다.
+    
+      - 2022_ICTIS_Unix_v1.0.sh 파일을 root 권한으로 실행한다.
+      - 스크립트를 수행한 결과 레포트를 제어노드의 ~/project/results2 디렉토리에 다음과 같은 이름으로 결과 파일을 수집한다.
+        
+      ```
+        ~/project
+          +-- results2
+               +-- lb.example.com.txt
+               +-- waf.example.com.txt
+               +-- web1.example.com.txt
+               +-- web2.example.com.txt
+      ```        
+    
+    - (기술 취약점 분석 스크립트) 2022_ICTIS_Unix_v1.0.sh
+  - chmod 777 2022_ICTIS_Unix_v1.0.sh
+  - (플레이북) vi server_script.yml
+
+    ```yaml
+    ---
+    - name: Server script
+      become: true
+      become_user: root
+      hosts: all
+      tasks:
+        - name: Run script 2022_ICTIS_Unix_v1.0.sh
+      ansible.builtin.script: 2022_ICTIS_Unix_v1.0.sh
+          args:
+            creates: 2022_ICTIS_Unix_v1.0.sh
+
+    - name: Fetch the report file to control node
+      ansible.builtin.fetch:
+        src: "/root/Linux_server_script_result.txt"
+        dest: "results2/{{ ansible_fqdn }}.txt"
+        flat: true
+    ```
+
+  - (확인) cat results2/lb.example.txt
