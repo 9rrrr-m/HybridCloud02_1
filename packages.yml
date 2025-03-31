@@ -1,0 +1,15 @@
+---
+- name: Install group packages
+  hosts: web
+  tasks:
+    - name: Install Development Tools group, iotop packages
+      ansible.builtin.dnf:
+        name:
+          - "@Development Tools"
+          - iotop
+        state: present  # latest
+
+    - name: Update all packages
+      ansible.builtin.yum:
+        name: '*'
+        state: latest
