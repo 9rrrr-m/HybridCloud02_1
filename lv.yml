@@ -1,0 +1,54 @@
+---
+- name: Disk partition operations
+  hosts: web
+  tasks:
+    - name: Check existing sdb
+      ansible.builtin.fail:
+        msg: "The device does not exist"
+      when: ansible_devices['sdb'] is not defined
+
+    - name: parted task
+      community.general.parted:
+        device: /dev/sdb
+        number: 1
+        part_start: 1MiB
+        part_end: 100%
+        flags: [ lvm ]
+        state: present
+
+    - name: Gather facts
+      ansible.builtin.setup:
+        filter:
+          - 'ansible_devices'
+
+    - name: Check partition size
+      ansible.builtin.fail:
+        msg: "Size not Enough"
+      vars:
+        sdb1_size: "{{ (ansible_devices['sdb']['partitions']['sdb1']['size'] | split)[0] }}"
+      when: (sdb1_size | float) < 800
+
+    - name: Create vg
+      community.general.lvg:
+        vg: research
+        pvs: /dev/sdb1
+
+    - name: Create lv
+      community.general.lvol:
+        vg: research
+        lv: data
+        size: 500m
+
+    - name: Make filesystem
+      community.general.filesystem:
+        fstype: ext4
+        dev: /dev/research/data
+        force: true
+
+    - name: Mount task
+      ansible.posix.mount:
+        src: /dev/research/data
+        path: /mnt/research
+        fstype: ext4
+        opts: defaults
+        state: mounted
