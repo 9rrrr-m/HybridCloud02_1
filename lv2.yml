@@ -1,0 +1,24 @@
+---
+- name: Disk partition operations
+  hosts: web
+  tasks:
+    - name: Check existing sdb
+      ansible.builtin.fail:
+        msg: "The device does not exist"
+      when: ansible_devices['sdb'] is not defined
+
+    - name: Using fedora.linux_system_roles.storage role
+      ansible.builtin.include_role:
+        name: fedora.linux_system_roles.storage
+      vars:
+        storage_pools:
+          - name: research
+            type: lvm
+            disks:
+              - /dev/sdb
+            volumes:
+              - name: data
+                size: 500m
+                mount_point: /mnt/research
+                fs_type: ext4
+                state: present
