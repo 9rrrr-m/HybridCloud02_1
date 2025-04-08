@@ -1,0 +1,49 @@
+---
+- name: FTP server setting
+  hosts: web2.example.com
+  tasks:
+    - name: Install packages
+      ansible.builtin.dnf:
+        name:
+          - vsftpd
+          - ftp
+          - firewalld
+        state: present
+
+    - name: Start and enable service
+      ansible.builtin.systemd:
+        name: "{{ item }}"
+        state: started
+        enabled: true
+      loop:
+        - vsftpd
+        - firewalld
+
+    - name: Configure anonymous disabled
+      ansible.builtin.lineinfile:
+        path: /etc/vsftpd/vsftpd.conf
+        regexp: '^anonymous_enable='
+        line: "anonymous_enable=NO"
+      notify: restart_vsftpd
+
+    - name: Configure allow root
+      ansible.builtin.lineinfile:
+        path: "{{ item }}"
+        regexp: '^root'
+        line: '#root'
+      loop:
+        - /etc/vsftpd/ftpusers
+        - /etc/vsftpd/user_list
+
+    - name: Firewall port open
+      ansible.posix.firewalld:
+        service: ftp
+        permanent: true
+        immediate: true
+        state: enabled
+
+  handlers:
+    - name: restart_vsftpd
+      ansible.builtin.systemd:
+        name: vsftpd
+        state: restarted
