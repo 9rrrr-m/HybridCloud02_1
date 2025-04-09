@@ -1,0 +1,66 @@
+---
+- name: Disk partition operation
+  hosts: all
+  tasks:
+    - name: Check existing sdb
+      ansible.builtin.fail:
+        msg: "The device does not exist"
+      when: ansible_devices.sdb is not defined
+
+    - name: Parted tasks
+      community.general.parted:
+        device: /dev/sdb
+        number: 1
+        part_start: 1MiB
+        part_end: 100%
+        flags: [ lvm ]
+        state: present
+
+    - name: Create vg
+      community.general.lvg:
+        vg: research
+        pvs: /dev/sdb1
+        state: present
+
+    - name: Gather fact
+      ansible.builtin.setup:
+        filter:
+          - 'ansible_devices'
+          - 'ansible_lvm'
+
+    - name: Check existing research vg
+      ansible.builtin.fail:
+        msg: "Volume group does not exist"
+      when: ansible_lvm.vgs.research is not defined
+
+    - name: Block ~ rescue
+      block:
+        - name: Check volume size
+          ansible.builtin.fail:
+            msg: "Could not create logical volume of that size"
+          vars:
+            sdb1_size: "{{ (ansible_devices.sdb.partitions.sdb1.size | split)[0] }}"
+          when: (sdb1_size | float) < 1500
+
+        - name: Create lv
+          community.general.lvol:
+            vg: research
+            lv: data
+            size: 1500m
+
+        - name: Make filesystem
+          community.general.filesystem:
+            fstype: xfs
+            dev: /dev/research/data
+
+      rescue:
+        - name: Create lv
+          community.general.lvol:
+            vg: research
+            lv: data
+            size: 800m
+
+        - name: Make filesystem
+          community.general.filesystem:
+            fstype: xfs
+            dev: /dev/research/data
