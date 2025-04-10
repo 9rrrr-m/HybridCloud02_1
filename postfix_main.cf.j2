@@ -1,0 +1,13 @@
+# /etc/postfix/main.cf
+myhostname = {{ ansible_hostname }}
+mydomain = example.com
+mydestination = $myhostname, localhost.$mydomain, localhost, $mydomain
+inet_interfaces = all
+inet_protocols = ipv4
+home_mailbox = Maildir/
+smtpd_tls_cert_file = /etc/ssl/certs/mail.crt
+smtpd_tls_key_file = /etc/ssl/private/mail.key
+smtpd_use_tls = yes
+smtp_tls_security_level = may
+smtpd_tls_security_level = may
+smtpd_tls_loglevel = 1
