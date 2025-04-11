@@ -1,0 +1,3 @@
+---
+ansible_hostname: web2.example.com
+mail_domain: example.com

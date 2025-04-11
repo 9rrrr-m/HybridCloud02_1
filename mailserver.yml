@@ -1,0 +1,58 @@
+---
+- name: MAIL server setting
+  hosts: mail
+  tasks:
+    - name: 시스템 패키지 업데이트
+      ansible.builtin.dnf:
+        name: "*"
+        state: latest
+
+    - name: Postfix 설치
+      ansible.builtin.dnf:
+        name: postfix
+        state: present
+
+    - name: Dovecot 설치
+      ansible.builtin.dnf:
+        name:
+          - dovecot
+          - dovecot-mysql
+          - dovecot-pigeonhole
+        state: present
+
+    - name: Postfix 메일 서버 설정
+      ansible.builtin.template:
+        src: postfix_main.cf.j2
+        dest: /etc/postfix/main.cf
+      notify:
+        - Restart postfix
+
+    - name: Dovecot 설정
+      ansible.builtin.template:
+        src: dovecot.conf.j2
+        dest: /etc/dovecot/dovecot.conf
+      notify:
+        - Restart dovecot
+
+    - name: Postfix를 시작하고 부팅 시 자동 시작 설정
+      ansible.builtin.systemd:
+        name: postfix
+        state: started
+        enabled: true
+
+    - name: Dovecot을 시작하고 부팅 시 자동 시작 설정
+      ansible.builtin.systemd:
+        name: dovecot
+        state: started
+        enabled: true
+
+  handlers:
+    - name: Restart postfix
+      ansible.builtin.systemd:
+        name: postfix
+        state: restarted
+
+    - name: Restart dovecot
+      ansible.builtin.systemd:
+        name: dovecot
+        state: restarted
