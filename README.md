@@ -1102,19 +1102,19 @@
     ```yaml
     ---
     - name: Install group packages
-	hosts: web
-	tasks:
-		- name: Install Development Tools group, iotop packages
-			ansible.builtin.dnf:
-				name:
-					- "@Development Tools"
-					- iotop
-				state: present  # latest
-			
-		- name: Update all packages
-	    ansible.builtin.yum:
-	      name: '*'
-	      state: latest
+  hosts: web
+  tasks:
+    - name: Install Development Tools group, iotop packages
+      ansible.builtin.dnf:
+        name:
+          - "@Development Tools"
+          - iotop
+        state: present  # latest
+      
+    - name: Update all packages
+      ansible.builtin.yum:
+        name: '*'
+        state: latest
     ```
     - (확인) `ans all -m shell -a 'rpm -q gcc iotop'`
 
@@ -1136,7 +1136,7 @@
       src: https://github.com/buluma/ansible-role-php.git
       
     - name: docker
-    	src: https://galaxy.ansible.com/download/community-docker-3.1.0.tar.gz
+      src: https://galaxy.ansible.com/download/community-docker-3.1.0.tar.gz
     ```
     - (실행) `anx install -r roles/requirements.yml -p roles`
 
@@ -1167,58 +1167,58 @@
     ```yaml
     ---
     - name: Disk partition operations
-    	hosts: web
-	  tasks:
-    		- name: Check existing sdb
-    			ansible.builtin.fail:
-    				msg: "The device does not exist"
-    			when: ansible_devices['sdb'] is not defined
-		
-    		- name: parted task
-    			community.general.parted:
-    				device: /dev/sdb
-    				number: 1
-    				part_start: 1MiB
-    				part_end: 100%
-    				flags: [ lvm ]
-    				state: present
-		
-    		- name: Gather facts
-    			ansible.builtin.setup:
-    				filter:
-    					- 'ansible_devices'
-		
-    		- name: Check partition size
-    			ansible.builtin.fail:
-    				msg: "Size not Enough"
-    			vars:
-    				sdb1_size: "{{ (ansible_devices['sdb']['partitions']['sdb1']['size'] | split)[0] }}"
-    			when: (sdb1_size | float) < 800
-		
-    		- name: Create vg
-    			community.general.lvg:
-    				vg: research
-    				pvs: /dev/sdb1
-		
-    		- name: Create lv
-    			community.general.lvol:
-    				vg: research
-    				lv: data
-    				size: 500m
-		
-    		- name: Make filesystem
-    			community.general.filesystem:
-    				fstype: ext4
-    				dev: /dev/research/data
-    				force: true
-				
-    		- name: Mount task
-    			ansible.posix.mount:
-    				src: /dev/research/data
-    				path: /mnt/research
-    				fstype: ext4
-    				opts: defaults
-    				state: mounted
+      hosts: web
+    tasks:
+        - name: Check existing sdb
+          ansible.builtin.fail:
+            msg: "The device does not exist"
+          when: ansible_devices['sdb'] is not defined
+    
+        - name: parted task
+          community.general.parted:
+            device: /dev/sdb
+            number: 1
+            part_start: 1MiB
+            part_end: 100%
+            flags: [ lvm ]
+            state: present
+    
+        - name: Gather facts
+          ansible.builtin.setup:
+            filter:
+              - 'ansible_devices'
+    
+        - name: Check partition size
+          ansible.builtin.fail:
+            msg: "Size not Enough"
+          vars:
+            sdb1_size: "{{ (ansible_devices['sdb']['partitions']['sdb1']['size'] | split)[0] }}"
+          when: (sdb1_size | float) < 800
+    
+        - name: Create vg
+          community.general.lvg:
+            vg: research
+            pvs: /dev/sdb1
+    
+        - name: Create lv
+          community.general.lvol:
+            vg: research
+            lv: data
+            size: 500m
+    
+        - name: Make filesystem
+          community.general.filesystem:
+            fstype: ext4
+            dev: /dev/research/data
+            force: true
+        
+        - name: Mount task
+          ansible.posix.mount:
+            src: /dev/research/data
+            path: /mnt/research
+            fstype: ext4
+            opts: defaults
+            state: mounted
     ```
     - (실행) `ann lv.yml`
 
@@ -1233,28 +1233,28 @@
     ```yaml
     ---
     - name: Disk partition operations
-    	hosts: web
-    	tasks:
-    		- name: Check existing sdb
-    			ansible.builtin.fail:
-    				msg: "The device does not exist"
-    			when: ansible_devices['sdb'] is not defined
-		
-    		- name: Using     fedora.linux_system_roles.storage role
-    			ansible.builtin.include_role:
-    				name: fedora.linux_system_roles.storage
-    			vars:
-    				storage_pools:
-    					- name: research
-    						type: lvm
-    						disks:
-    							- /dev/sdb
-    						volumes:
-    							- name: data
-    								size: 500m
-    								mount_point: /mnt/research
-    								fs_type: ext4
-    								state: present
+      hosts: web
+      tasks:
+        - name: Check existing sdb
+          ansible.builtin.fail:
+            msg: "The device does not exist"
+          when: ansible_devices['sdb'] is not defined
+    
+        - name: Using     fedora.linux_system_roles.storage role
+          ansible.builtin.include_role:
+            name: fedora.linux_system_roles.storage
+          vars:
+            storage_pools:
+              - name: research
+                type: lvm
+                disks:
+                  - /dev/sdb
+                volumes:
+                  - name: data
+                    size: 500m
+                    mount_point: /mnt/research
+                    fs_type: ext4
+                    state: present
     ```
     - (실행) `ann lv2.yml`
     - (확인) `ans web -m shell -a 'lsblk'`
@@ -1280,6 +1280,7 @@ sdb가 루트 파일 시스템이 아닐 때까지 재부팅 후 작업 진행
     ans web -m shell -a 'sudo umount /mnt/research && sudo lvremove -f /dev/research/data && sudo vgremove -f /dev/research && sudo pvremove -f /dev/sdb1 && sudo wipefs -a /dev/sdb && sudo parted /dev/sdb rm 1'
     ```
     - (확인) `ans web -m shell -a 'lsblk'`
+
   - (플레이북) vi lv3.yml
 
     ```yaml
@@ -1362,58 +1363,59 @@ sdb가 루트 파일 시스템이 아닐 때까지 재부팅 후 작업 진행
     - vsftpd 패키지를 사용하여 설치하고, 서비스는 부팅 시도 기동 된다.
     - root 사용자는 원격에서 접근이 가능해야 한다.
     - 방화벽에 포트가 영구적으로 등록되어 있어야 한다.
+
   - (플레이북) vi ftp.yml
 
     ```yaml
     ---
     - name: FTP server setting
-    	hosts: web2.example.com
-    	tasks:
-    		- name: Install packages
-    			ansible.builtin.dnf:
-    				name:
-    					- vsftpd
-    					- ftp
-    					- firewalld
-    				state: present
-		
-    		- name: Start and enable service
-    			ansible.builtin.systemd:
-    				name: "{{ item }}"
-    				state: started
-    				enabled: true
-    			loop:
-    				- vsftpd
-    				- firewalld
-		
-    		- name: Configure anonymous disabled
-    			ansible.builtin.lineinfile:
-    				path: /etc/vsftpd/vsftpd.conf
-    				regexp: '^anonymous_enable='
-    				line: "anonymous_enable=NO"
-    			notify: restart_vsftpd
-			
-    		- name: Configure allow root
-    			ansible.builtin.lineinfile:
-    				path: "{{ item }}"
-    				regexp: '^root'
-    				line: '#root'
-    			loop:
-    				- /etc/vsftpd/ftpusers
-    				- /etc/vsftpd/user_list
-		
-    		- name: Firewall port open
-    			ansible.posix.firewalld:
-    				service: ftp
-    				permanent: true
-    				immediate: true
-    				state: enabled
+      hosts: web2.example.com
+      tasks:
+        - name: Install packages
+          ansible.builtin.dnf:
+            name:
+              - vsftpd
+              - ftp
+              - firewalld
+            state: present
+    
+        - name: Start and enable service
+          ansible.builtin.systemd:
+            name: "{{ item }}"
+            state: started
+            enabled: true
+          loop:
+            - vsftpd
+            - firewalld
+    
+        - name: Configure anonymous disabled
+          ansible.builtin.lineinfile:
+            path: /etc/vsftpd/vsftpd.conf
+            regexp: '^anonymous_enable='
+            line: "anonymous_enable=NO"
+          notify: restart_vsftpd
+      
+        - name: Configure allow root
+          ansible.builtin.lineinfile:
+            path: "{{ item }}"
+            regexp: '^root'
+            line: '#root'
+          loop:
+            - /etc/vsftpd/ftpusers
+            - /etc/vsftpd/user_list
+    
+        - name: Firewall port open
+          ansible.posix.firewalld:
+            service: ftp
+            permanent: true
+            immediate: true
+            state: enabled
 
-    	handlers:
-    		- name: restart_vsftpd
-    			ansible.builtin.systemd:
-    				name: vsftpd
-    				state: restarted
+      handlers:
+        - name: restart_vsftpd
+          ansible.builtin.systemd:
+            name: vsftpd
+            state: restarted
     ```
     - (실행) `ann ftp.yml`
     - (확인) `ftp web2`
@@ -1444,6 +1446,7 @@ sdb가 루트 파일 시스템이 아닐 때까지 재부팅 후 작업 진행
     ```
 
   - (플레이북) vi mailserver.yml
+    
     ```yaml
     ---
     - name: MAIL server setting
