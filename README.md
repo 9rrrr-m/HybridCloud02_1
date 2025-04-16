@@ -1044,7 +1044,7 @@
                +-- web2.example.com.txt
       ```        
     
-    - (기술 취약점 분석 스크립트) 2022_ICTIS_Unix_v1.0.sh
+  - (기술 취약점 분석 스크립트) 2022_ICTIS_Unix_v1.0.sh
   - chmod 777 2022_ICTIS_Unix_v1.0.sh
   - (플레이북) vi server_script.yml
 
@@ -1066,5 +1066,483 @@
         dest: "results2/{{ ansible_fqdn }}.txt"
         flat: true
     ```
+  - (실행 스크립트) vi server_check_cronjob.sh
 
+    ```bash
+    #!/bin/bash
+    
+    echo "============================ 서버 취약점 검사를 시작합니다. ============================"
+    cd /home/ansible/project
+    ansible-navigator run -m stdout server_script.yml
+    
+    if [ $? -eq 0 ] ; then
+        echo "[  OK  ] 서버 취약점 검사가 완료되었습니다."
+        tree /home/ansible/project/results2
+    fi
+    ```
+  - chmod +x server_check_cronjob.sh
+  - ./server_check_cronjob.sh
+  - (control 노드에 cronjob 등록) `crontab -e `
+    ```bash
+    # 분기마다 1일 00:05에 서버 취약점 검사
+    5 0 1 3,6,9,12 * /home/ansible/project/server_check_cronjob.sh
+    ```
   - (확인) cat results2/lb.example.txt
+
+- 패키지 설치 - packages.yml
+    
+  다음과 같이 /home/ansible/project/packages.yml 이라는 플레이북을 생성한다.
+
+  - web 호스트 그룹의 호스트에 Development Tools 그룹 패키지 그룹을 설치한다.
+  - web 호스트 그룹의 호스트에서 iotop 패키지를 설치한다.
+  - web 호스트 그룹의 모든 패키지를 최신 버전으로 한다.
+
+  - (플레이북) vi packages.yml
+
+    ```yaml
+    ---
+    - name: Install group packages
+	hosts: web
+	tasks:
+		- name: Install Development Tools group, iotop packages
+			ansible.builtin.dnf:
+				name:
+					- "@Development Tools"
+					- iotop
+				state: present  # latest
+			
+		- name: Update all packages
+	    ansible.builtin.yum:
+	      name: '*'
+	      state: latest
+    ```
+    - (확인) `ans all -m shell -a 'rpm -q gcc iotop'`
+
+- 컨테이너 환경 구성 - Ansible Galaxy를 사용하여 역할 설치
+    
+  /home/ansible/project/roles/requirements.yml 이라는 요구 사항 파일을 수정한다. 이 파일에는 Ansible Galaxy를 사용하여 역할을 다운로드하고 /home/ansible/project/roles 디렉토리 하위에 설치한다.
+
+  - https://galaxy.ansible.com 사이트를 사용하여 docker 역할을 설치한다.
+이 역할의 이름은 docker이다.
+
+  - (플레이북) vi roles/requirements.yml
+
+    ```yaml
+    ---
+    - name: balancer
+      src: https://github.com/geerlingguy/ansible-role-haproxy/archive/1.3.1.tar.gz
+    
+    - name: phpinfo
+      src: https://github.com/buluma/ansible-role-php.git
+      
+    - name: docker
+    	src: https://galaxy.ansible.com/download/community-docker-3.1.0.tar.gz
+    ```
+    - (실행) `anx install -r roles/requirements.yml -p roles`
+
+- 논리 볼륨 생성 및 사용
+    
+  web 그룹 관리형 노드에서 실행되는 /home/ansible/project/lv.yml라는 플레이북을 생성한다. 아래 요구 사항으로 논리 볼륨을 생성한다.
+
+  - 논리 볼륨은 research 볼륨 그룹에 생성
+  - 논리 볼륨 이름은 data
+  - 논리 볼륨의 크기는 500 Mib
+  - ext4 파일시스템으로 논리 볼륨을 포맷
+  - 논리 볼륨을 /mnt/research 마운트. 반드시 부팅시에도 마운트 되어야 함.
+
+  에러 처리 부분 추가
+
+  - 생성된 파티션이 800Mib 크기 보다 작은 경우 'Size not Enough'라는 메시지를 표시
+  - 노드에 sdb 장치가 없는 경우 'The device does not exist'라는 메시지를 표시
+
+  - web1, web2에 1G짜리 하드디스크를 추가로 장착한다.
+  - (확인) `ans web -m shell -a 'lsblk'`
+
+    sdb가 루트 파일 시스템이 아닐 때까지 재부팅 후 작업 진행
+
+    - (재부팅) ans web -m reboot 
+
+  - (플레이북) vi lv.yml (모듈 사용)
+
+    ```yaml
+    ---
+    - name: Disk partition operations
+    	hosts: web
+	  tasks:
+    		- name: Check existing sdb
+    			ansible.builtin.fail:
+    				msg: "The device does not exist"
+    			when: ansible_devices['sdb'] is not defined
+		
+    		- name: parted task
+    			community.general.parted:
+    				device: /dev/sdb
+    				number: 1
+    				part_start: 1MiB
+    				part_end: 100%
+    				flags: [ lvm ]
+    				state: present
+		
+    		- name: Gather facts
+    			ansible.builtin.setup:
+    				filter:
+    					- 'ansible_devices'
+		
+    		- name: Check partition size
+    			ansible.builtin.fail:
+    				msg: "Size not Enough"
+    			vars:
+    				sdb1_size: "{{ (ansible_devices['sdb']['partitions']['sdb1']['size'] | split)[0] }}"
+    			when: (sdb1_size | float) < 800
+		
+    		- name: Create vg
+    			community.general.lvg:
+    				vg: research
+    				pvs: /dev/sdb1
+		
+    		- name: Create lv
+    			community.general.lvol:
+    				vg: research
+    				lv: data
+    				size: 500m
+		
+    		- name: Make filesystem
+    			community.general.filesystem:
+    				fstype: ext4
+    				dev: /dev/research/data
+    				force: true
+				
+    		- name: Mount task
+    			ansible.posix.mount:
+    				src: /dev/research/data
+    				path: /mnt/research
+    				fstype: ext4
+    				opts: defaults
+    				state: mounted
+    ```
+    - (실행) `ann lv.yml`
+
+   - (Ad-hoc) 기존에 생성된 파티션을 삭제
+      ```bash
+      ans web -m shell -a 'sudo umount /mnt/research && sudo lvremove -f /dev/research/data && sudo vgremove -f /dev/research && sudo pvremove -f /dev/sdb1 && sudo wipefs -a /dev/sdb && sudo parted /dev/sdb rm 1'
+      ```
+      - (확인) `ans web -m shell -a 'lsblk'`
+
+  - (플레이북) vi lv2.yml (collection role 사용)
+
+    ```yaml
+    ---
+    - name: Disk partition operations
+    	hosts: web
+    	tasks:
+    		- name: Check existing sdb
+    			ansible.builtin.fail:
+    				msg: "The device does not exist"
+    			when: ansible_devices['sdb'] is not defined
+		
+    		- name: Using     fedora.linux_system_roles.storage role
+    			ansible.builtin.include_role:
+    				name: fedora.linux_system_roles.storage
+    			vars:
+    				storage_pools:
+    					- name: research
+    						type: lvm
+    						disks:
+    							- /dev/sdb
+    						volumes:
+    							- name: data
+    								size: 500m
+    								mount_point: /mnt/research
+    								fs_type: ext4
+    								state: present
+    ```
+    - (실행) `ann lv2.yml`
+    - (확인) `ans web -m shell -a 'lsblk'`
+
+  [조건 변경] 모든 관리노드에서 실행되는 /home/ansible/project/lv3.yml 이라는 플레이북을 만든다.
+
+  - 다음 요구 사항을 갖춘 논리 볼륨을 만듭니다.
+    - 논리 볼륨은 research 볼륨 그룹에 생성, 논리 볼륨 이름은 data
+    - 논리 볼륨 크기는 1500 MiB
+    - xfs 파일 시스템으로 논리 볼륨을 포맷
+    - 노드에 sdb 장치가 없는 경우 'The device does not exist'라는 메시지를 표시
+    - 요청한 논리 볼륨 크기를 만들 수 없는 경우 오류 메세지
+    Could not create logical volume of that size 표시되며 크기 800 MiB가 대신 설정됨
+    - 볼륨 그룹 research가 없는 경우 오류 메세지
+    Volume group does not exist 표시
+    - 논리 볼륨을 마운트 하지 않음
+
+  - (확인) `ans web -m shell -a 'lsblk'`
+sdb가 루트 파일 시스템이 아닐 때까지 재부팅 후 작업 진행
+    - (재부팅) `ans web -m reboot`
+  - (web 그룹) 기존에 생성된 파티션을 삭제
+    ```bash
+    ans web -m shell -a 'sudo umount /mnt/research && sudo lvremove -f /dev/research/data && sudo vgremove -f /dev/research && sudo pvremove -f /dev/sdb1 && sudo wipefs -a /dev/sdb && sudo parted /dev/sdb rm 1'
+    ```
+    - (확인) `ans web -m shell -a 'lsblk'`
+  - (플레이북) vi lv3.yml
+
+    ```yaml
+    ---
+    - name: Disk partition operation
+      hosts: all
+      tasks:
+        - name: Check existing sdb
+          ansible.builtin.fail:
+            msg: "The device does not exist"
+          when: ansible_devices.sdb is not defined
+
+        - name: Parted tasks
+          community.general.parted:
+            device: /dev/sdb
+            number: 1
+            part_start: 1MiB
+            part_end: 100%
+            flags: [ lvm ]
+            state: present
+
+        - name: Create vg
+          community.general.lvg:
+            vg: research
+            pvs: /dev/sdb1
+            state: present
+
+        - name: Gather fact
+          ansible.builtin.setup:
+            filter:
+              - 'ansible_devices'
+              - 'ansible_lvm'
+
+        - name: Check existing research vg
+          ansible.builtin.fail:
+            msg: "Volume group does not exist"
+          when: ansible_lvm.vgs.research is not defined
+
+        - name: Block ~ rescue
+          block:
+            - name: Check volume size
+              ansible.builtin.fail:
+                msg: "Could not create logical volume of that size"
+              vars:
+                sdb1_size: "{{ (ansible_devices.sdb.partitions.sdb1.size | split)[0] }}"
+              when: (sdb1_size | float) < 1500
+
+            - name: Create lv
+              community.general.lvol:
+                vg: research
+                lv: data
+                size: 1500m
+
+            - name: Make filesystem
+              community.general.filesystem:
+                fstype: xfs
+                dev: /dev/research/data
+
+          rescue:
+            - name: Create lv
+              community.general.lvol:
+                vg: research
+                lv: data
+                size: 800m
+
+            - name: Make filesystem
+              community.general.filesystem:
+                fstype: xfs
+                dev: /dev/research/data
+    ```
+    - (실행) `ann lv3.yml`
+    - (확인) `ans web -m shell -a 'lsblk'`
+
+- FTP 서버 구성
+    
+  FTP 서버를 구성하는 /home/ansible/project/ftp.yml 파일을 생성한다.
+  - 플레이북으로 FTP 서버 구성 시 조건은 다음과 같다.
+    - web2 관리 노드에서만 실행된다.
+    - Anonymous FTP 서비스는 비활성화 한다.
+    - vsftpd 패키지를 사용하여 설치하고, 서비스는 부팅 시도 기동 된다.
+    - root 사용자는 원격에서 접근이 가능해야 한다.
+    - 방화벽에 포트가 영구적으로 등록되어 있어야 한다.
+  - (플레이북) vi ftp.yml
+
+    ```yaml
+    ---
+    - name: FTP server setting
+    	hosts: web2.example.com
+    	tasks:
+    		- name: Install packages
+    			ansible.builtin.dnf:
+    				name:
+    					- vsftpd
+    					- ftp
+    					- firewalld
+    				state: present
+		
+    		- name: Start and enable service
+    			ansible.builtin.systemd:
+    				name: "{{ item }}"
+    				state: started
+    				enabled: true
+    			loop:
+    				- vsftpd
+    				- firewalld
+		
+    		- name: Configure anonymous disabled
+    			ansible.builtin.lineinfile:
+    				path: /etc/vsftpd/vsftpd.conf
+    				regexp: '^anonymous_enable='
+    				line: "anonymous_enable=NO"
+    			notify: restart_vsftpd
+			
+    		- name: Configure allow root
+    			ansible.builtin.lineinfile:
+    				path: "{{ item }}"
+    				regexp: '^root'
+    				line: '#root'
+    			loop:
+    				- /etc/vsftpd/ftpusers
+    				- /etc/vsftpd/user_list
+		
+    		- name: Firewall port open
+    			ansible.posix.firewalld:
+    				service: ftp
+    				permanent: true
+    				immediate: true
+    				state: enabled
+
+    	handlers:
+    		- name: restart_vsftpd
+    			ansible.builtin.systemd:
+    				name: vsftpd
+    				state: restarted
+    ```
+    - (실행) `ann ftp.yml`
+    - (확인) `ftp web2`
+      - root 사용자로 로그인 후 확인
+      - anonymous 사용자로 로그인 실패 확인
+
+- MAIL 서버 구성
+    
+  CentOS 9에서 메일 서버를 설정하는 /home/ansible/mailserver.yml 플레이북을 작성한다.
+
+  - web2 관리노드를 mail 서버로 사용한다.
+  - Postfix와 Dovecot을 설치하고 설정하며, 서비스가 시작되고, 부팅 시 자동으로 시작되도록 설정한다.
+
+  - (수정)  vi inventory
+    ```yaml
+    [waf]
+    waf.example.com ansible_ssh_host=192.168.1.110
+
+    [lb]
+    lb.example.com ansible_ssh_host=192.168.1.200
+
+    [web]
+    web1.example.com ansible_ssh_host=192.168.1.104
+    web2.example.com ansible_ssh_host=192.168.1.105
+
+    [mail]
+    web2.example.com
+    ```
+
+  - (플레이북) vi mailserver.yml
+    ```yaml
+    ---
+    - name: MAIL server setting
+      hosts: mail
+      tasks:
+        - name: 시스템 패키지 업데이트
+          ansible.builtin.dnf:
+            name: "*"
+            state: latest
+
+        - name: Postfix 설치
+          ansible.builtin.dnf:
+            name: postfix
+            state: present
+
+        - name: Dovecot 설치
+          ansible.builtin.dnf:
+            name:
+              - dovecot
+              - dovecot-mysql
+              - dovecot-pigeonhole
+            state: present
+
+        - name: Postfix 메일 서버 설정
+          ansible.builtin.template:
+            src: postfix_main.cf.j2
+            dest: /etc/postfix/main.cf
+          notify:
+            - Restart postfix
+
+        - name: Dovecot 설정
+          ansible.builtin.template:
+          src: dovecot.conf.j2
+            dest: /etc/dovecot/dovecot.conf
+          notify:
+            - Restart dovecot
+
+        - name: Postfix를 시작하고 부팅 시 자동 시작 설정
+          ansible.builtin.systemd:
+            name: postfix
+            state: started
+            enabled: true
+
+        - name: Dovecot을 시작하고 부팅 시 자동 시작 설정
+          ansible.builtin.systemd:
+            name: dovecot
+            state: started
+            enabled: true
+
+      handlers:
+        - name: Restart postfix
+          ansible.builtin.systemd:
+            name: postfix
+            state: restarted
+
+        - name: Restart dovecot
+          ansible.builtin.systemd:
+            name: dovecot
+            state: restarted
+    ```
+  - (Postfix 설정 템플릿) vi postfix_main.cf.j2
+    ```
+    # /etc/postfix/main.cf
+    myhostname = {{ ansible_hostname }}
+    mydomain = example.com
+    mydestination = $myhostname,   localhost.$mydomain, localhost, $mydomain
+    inet_interfaces = all
+    inet_protocols = ipv4
+    home_mailbox = Maildir/
+    smtpd_tls_cert_file = /etc/ssl/certs/mail.crt
+    smtpd_tls_key_file = /etc/ssl/private/mail.key
+    smtpd_use_tls = yes
+    smtp_tls_security_level = may
+    smtpd_tls_security_level = may
+    smtpd_tls_loglevel = 1
+    ```
+  - (Dovecot 설정 템플릿) vi dovecot.conf.j2
+    ```
+    # /etc/dovecot/dovecot.conf
+    disable_plaintext_auth = no
+    mail_location = maildir:~/Maildir
+    service imap-login {
+      inet_listener imap {
+        port = 0
+      }
+      inet_listener imaps {
+        port = 993
+        ssl = yes
+      }
+    }
+    ssl_cert = </etc/ssl/certs/mail.crt
+    ssl_key = </etc/ssl/private/mail.key
+    ```
+  - 사용자 정의 변수 파일
+    - 메일 서버의 호스트 이름과 도메인에 대한 정보 설정
+    - vi vars.yml
+      ```yaml
+      ---
+      ansible_hostname: web2.example.com
+      mail_domain: example.com
+      ```
+    - (실행) `ann mailserver.yml -e @vars.yml`
